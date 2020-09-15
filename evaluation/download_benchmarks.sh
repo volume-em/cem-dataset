@@ -12,7 +12,7 @@ lucchi_dir="${dir_prefix}/lucchi_pp/"
 if [ ! -d $lucchi_dir ] && echo "Directory ${lucchi_dir} DOES NOT exists."; then
     echo "Downloading Lucchi++ ..."
     mkdir $lucchi_dir
-    wget http://www.casser.io/files/lucchi_pp.zip -P $lucchi_dir
+    wget -q http://www.casser.io/files/lucchi_pp.zip -P $lucchi_dir
     unzip -qq $lucchi_dir/lucchi_pp.zip -d $lucchi_dir
     rm $lucchi_dir/lucchi_pp.zip
     mv $lucchi_dir/Lucchi++/* $lucchi_dir
@@ -30,7 +30,7 @@ kasthuri_dir="${dir_prefix}/kasthuri_pp/"
 if [ ! -d $kasthuri_dir ] && echo "Directory ${kasthuri_dir} DOES NOT exists."; then
     echo "Downloading Kasthuri++ ..."
     mkdir $kasthuri_dir
-    wget http://www.casser.io/files/kasthuri_pp.zip -P $kasthuri_dir
+    wget -q http://www.casser.io/files/kasthuri_pp.zip -P $kasthuri_dir
     unzip -qq $kasthuri_dir/kasthuri_pp.zip -d $kasthuri_dir
     rm $kasthuri_dir/kasthuri_pp.zip
     mv $kasthuri_dir/Kasthuri++/* $kasthuri_dir
@@ -48,7 +48,7 @@ perez_dir="${dir_prefix}/perez/"
 if [ ! -d $perez_dir ] && echo "Directory ${perez_dir} DOES NOT exists."; then
     echo "Downloading Perez ..."
     mkdir $perez_dir
-    wget https://www.sci.utah.edu/releases/chm_v2.1.367/chm-supplemental_data.zip -P $perez_dir
+    wget -q https://www.sci.utah.edu/releases/chm_v2.1.367/chm-supplemental_data.zip -P $perez_dir
     unzip -qq $perez_dir/chm-supplemental_data.zip -d $perez_dir
     rm $perez_dir/chm-supplemental_data.zip
     mv $perez_dir/supplemental_data/* $perez_dir
@@ -93,7 +93,7 @@ guay_dir="${dir_prefix}/guay/"
 if [ ! -d $guay_dir ] && echo "Directory ${guay_dir} DOES NOT exists."; then
     echo "Downloading Guay ..."
     mkdir $guay_dir
-    wget https://www.dropbox.com/s/68yclbraqq1diza/platelet_data_1219.zip -P $guay_dir
+    wget -q https://www.dropbox.com/s/68yclbraqq1diza/platelet_data_1219.zip -P $guay_dir
     unzip -qq $guay_dir/platelet_data_1219.zip -d $guay_dir
     
     rm $guay_dir/platelet_data_1219.zip
@@ -128,26 +128,26 @@ if [ ! -d $urocell_dir ] && echo "Directory ${urocell_dir} DOES NOT exists."; th
     
     
     #training sets
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-1-0-3.nii.gz -P $urocell_dir/3d/train/images
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-1-0-3.nii.gz -P $urocell_dir/3d/train/lyso
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-1-0-3.nii.gz -P $urocell_dir/3d/train/mito
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-1-0-3.nii.gz -P $urocell_dir/3d/train/images
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-1-0-3.nii.gz -P $urocell_dir/3d/train/lyso
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-1-0-3.nii.gz -P $urocell_dir/3d/train/mito
     
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-3-2-1.nii.gz -P $urocell_dir/3d/train/images
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-3-2-1.nii.gz -P $urocell_dir/3d/train/lyso
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-3-2-1.nii.gz -P $urocell_dir/3d/train/mito
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-3-2-1.nii.gz -P $urocell_dir/3d/train/images
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-3-2-1.nii.gz -P $urocell_dir/3d/train/lyso
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-3-2-1.nii.gz -P $urocell_dir/3d/train/mito
         
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-3-3-0.nii.gz -P $urocell_dir/3d/train/images
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-3-3-0.nii.gz -P $urocell_dir/3d/train/lyso
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-3-3-0.nii.gz -P $urocell_dir/3d/train/mito
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-3-3-0.nii.gz -P $urocell_dir/3d/train/images
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-3-3-0.nii.gz -P $urocell_dir/3d/train/lyso
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-3-3-0.nii.gz -P $urocell_dir/3d/train/mito
     
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-4-3-0.nii.gz -P $urocell_dir/3d/train/images
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-4-3-0.nii.gz -P $urocell_dir/3d/train/lyso
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-4-3-0.nii.gz -P $urocell_dir/3d/train/mito
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-4-3-0.nii.gz -P $urocell_dir/3d/train/images
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-4-3-0.nii.gz -P $urocell_dir/3d/train/lyso
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-4-3-0.nii.gz -P $urocell_dir/3d/train/mito
     
     #test set
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-0-0-0.nii.gz -P $urocell_dir/3d/test/images
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-0-0-0.nii.gz -P $urocell_dir/3d/test/lyso
-    wget https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-0-0-0.nii.gz -P $urocell_dir/3d/test/mito
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/data/fib1-0-0-0.nii.gz -P $urocell_dir/3d/test/images
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/lyso/fib1-0-0-0.nii.gz -P $urocell_dir/3d/test/lyso
+    wget -q https://github.com/MancaZerovnikMekuc/UroCell/raw/master/mito/fib1-0-0-0.nii.gz -P $urocell_dir/3d/test/mito
 else
     echo "UroCell already downloaded, skipping"
 fi
@@ -161,9 +161,9 @@ if [ ! -d $cremi_dir ] && echo "Directory ${cremi_dir} DOES NOT exists."; then
     mkdir $cremi_dir/3d/train/images $cremi_dir/3d/train/masks
     mkdir $cremi_dir/3d/test/images $cremi_dir/3d/test/masks
     
-    wget https://cremi.org/static/data/sample_A_20160501.hdf -P $cremi_dir/3d/train
-    wget https://cremi.org/static/data/sample_B_20160501.hdf -P $cremi_dir/3d/train
-    wget https://cremi.org/static/data/sample_C_20160501.hdf -P $cremi_dir/3d/test
+    wget -q https://cremi.org/static/data/sample_A_20160501.hdf -P $cremi_dir/3d/train
+    wget -q https://cremi.org/static/data/sample_B_20160501.hdf -P $cremi_dir/3d/train
+    wget -q https://cremi.org/static/data/sample_C_20160501.hdf -P $cremi_dir/3d/test
 else
     echo "CREMI already downloaded, skipping"
 fi
