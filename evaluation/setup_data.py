@@ -185,7 +185,7 @@ if __name__ == '__main__':
         setname = hdfp.split('/')[-2] #e.g. cremi/3d/test/*.hdf --> test
         
         #load the hdf file
-        dataset = File(hdfp)['volumes']
+        dataset = File(hdfp, mode='r')['volumes']
         
         #get the image vol, which is already uint8
         imvol = dataset['raw'].__array__()

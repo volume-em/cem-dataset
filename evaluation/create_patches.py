@@ -77,7 +77,6 @@ if __name__ == "__main__":
     
     #get the list of all tiff files
     impaths = glob(os.path.join(imdir, '*'))
-    print(f'Found {len(impaths)} images to crop.')
     
     #loop over the images and save the images that pass a filter
     for ix, impath in enumerate(impaths):
