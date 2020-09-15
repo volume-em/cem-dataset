@@ -106,7 +106,7 @@ if __name__ == '__main__':
         vol = sitk.Cast(vol, sitk.sitkUInt8)
         
         #replace '-labels' with '-images' in the filename
-        sitk.WriteImage(vol, mp.replace('-labels', '-images'))
+        sitk.WriteImage(vol, mp.replace('-labels.tif', '-images.tif'))
         
         #remove the original volume
         os.remove(mp)
@@ -115,11 +115,48 @@ if __name__ == '__main__':
     #sort the impaths and mskpaths just to ensure that they line up
     guay_impaths = np.sort(guay_impaths)
     guay_mskpaths = np.sort(guay_mskpaths)
-    for ip, mp in zip(guay_impaths, guay_maskpaths):
+    for ip, mp in zip(guay_impaths, guay_mskpaths):
         assert(ip.replace('images', 'blank') == mp.replace('masks', 'blank')), "Image and mask volumes are not aligned!"
         #call the create_slices.py script to save results in the guay/2d folder
         setname = ip.split('/')[-3] #.../guay/3d/train/images/train-images.tif --> train
         slice_dir = os.path.join(save_dir, f'guay/2d/{setname}/')
-        command = f'python create_slices.py {ip} {mp} {slice_dir}'
+        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 2 -s 1'
         subprocess.call(command.split(' '))
         
+    
+    #now onto UroCell:
+    #1. mito and lyso labelmaps, are separate, we need to combine them into a single mask volume
+    #2. slice cross sections to make 2d versions of the train set
+    #the test set is always evaluated in 3d, so we leave it that way
+    
+    #get paths of the mito and lyso labelmap volumes
+    lysopaths = np.sort(glob(os.path.join(save_dir, f'urocell/3d/*/lyso/*.nii.gz'))) #e.g. urocell/3d/train/lyso/*.nii.gz
+    mitopaths = np.sort(glob(os.path.join(save_dir, f'urocell/3d/*/mito/*.nii.gz'))) #e.g. urocell/3d/train/mito/*.nii.gz
+    for lp, mp in zip(lysopaths, mitopaths):
+        assert(lp.replace('lyso', 'mito') == mp), "Lyso and mito label volumes are not aligned!"
+        
+        #load the volumes
+        lyso = sitk.ReadImage(lp)
+        mito = sitk.ReadImage(mp)
+        
+        #add them together into a single label volume
+        #such that 1 == lyso and 2 == mito
+        labelmap = lyso + 2 * mito
+        
+        #make sure the datatype is uint8
+        labelmap = sitk.Cast(labelmap, sitk.sitkUInt8)
+        
+        #save the result
+        sitk.WriteImage(labelmap, lp.replace('/lyso/', '/masks/'))
+        
+    #now we're ready to slice into cross sections
+    #get impaths and mskpaths
+    urocell_impaths = np.sort(glob(os.path.join(save_dir, f'urocell/3d/*/images/*.nii.gz'))) #e.g. urocell/3d/test/images/*.nii.gz
+    urocell_mskpaths = np.sort(glob(os.path.join(save_dir, f'urocell/3d/*/masks/*.nii.gz'))) #e.g. urocell/3d/train/masks/*.nii.gz
+    for ip, mp in zip(urocell_impaths, urocell_mskpaths):
+        assert(ip.replace('images', 'blank') == mp.replace('masks', 'blank')), "Image and mask volumes are not aligned!"
+        #call the create_slices.py script to save results in the urocell/2d folder
+        setname = ip.split('/')[-3] #.../urocell/3d/train/images/fib1-4-3-0.nii.gz --> train
+        slice_dir = os.path.join(save_dir, f'urocell/2d/{setname}/')
+        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 0 1 2 -s 1'
+        subprocess.call(command.split(' '))
