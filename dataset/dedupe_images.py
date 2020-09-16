@@ -1,13 +1,28 @@
-import os
-import imagehash
+import os, argparse
 import numpy as np
-from PIL import Image
 from glob import glob
 from multiprocessing import Pool
-from time import time
 from tqdm import tqdm
 
-print('imported modules')
+#main function of the script
+if __name__ == "__main__":
+    
+    #setup the argument parser
+    parser = argparse.ArgumentParser(description='Create dataset for nn experimentation')
+    parser.add_argument('impath', type=str, metavar='impath', help='Directory containing image patches')
+    parser.add_argument('save_path', type=str, metavar='save_path', help='Path to save the slices')
+    parser.add_argument('-a', '--axes', dest='axes', type=int, metavar='axes', nargs='+', default=[0, 1, 2],
+                        help='Volume axes along which to slice (0-xy, 1-xz, 2-yz)')
+    parser.add_argument('-s', '--spacing', dest='spacing', type=int, metavar='spacing', default=1,
+                        help='Spacing between image slices')
+    parser.add_argument('-p', '--processes', dest='processes', type=int, metavar='processes', default=4,
+                        help='Number of processes to run, more processes run faster but consume memory')
+    
+
+    args = parser.parse_args()
+
+
+
 imfiles = np.load('/data/IASEM/conradrw/data/images224_fpaths.npy')
 #imfiles = np.random.permutation(np.load('/data/IASEM/conradrw/data/images_224_fnames_round8.npy'))
 print(f'Found {len(imfiles)} image files')
