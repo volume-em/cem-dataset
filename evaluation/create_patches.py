@@ -39,10 +39,6 @@ def patch_crop(impath, dst_dir, crop_size, label):
         for xs, xe in zip(xstarts, xends):
             patch = image[ys:ye, xs:xe]
             
-            #don't save black images
-            if patch.max() == 0:
-                continue
-            
             if label != 0:
                 patch = (patch == label).astype(np.uint8)
                 

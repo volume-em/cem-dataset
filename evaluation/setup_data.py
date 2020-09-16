@@ -18,7 +18,7 @@ if __name__ == '__main__':
     #parse the save directory
     args = parse_args()
     save_dir = args['save_dir']
-    
+
     #run the download_benchmarks.sh script
     command = f'bash download_benchmarks.sh {save_dir}'
     subprocess.call(command.split(' '))
@@ -36,8 +36,10 @@ if __name__ == '__main__':
             #convert labelmap values from 255 to 1
             if mask.ndim == 3:
                 mask = mask[..., 0]
-                
-            mask = (mask > 0).astype(np.uint8)
+            
+            #background padding values are non-zero
+            #dividing by 255 rounds them down to zero
+            mask = (mask / 255).astype(np.uint8)
             
             #fix the name to match image names: mask9999.png
             slice_num = mp.split('/')[-1].split('.png')[0]
@@ -62,11 +64,13 @@ if __name__ == '__main__':
             #take the first channel only (all 3 are the same anyway)
             if mask.ndim == 3:
                 mask = mask[..., 0]
-            mask = (mask > 0).astype(np.uint8)
+                
+            #background padding values are non-zero
+            #dividing by 255 rounds them down to zero
+            mask = (mask / 255).astype(np.uint8)
             
             #overwrite the mask file
             imsave(mp, mask, check_contrast=False)
-    
 
     #next, fix up the perez datasets:
     #1. the image and mask filenames are not the same, all have different prefixes
@@ -218,11 +222,18 @@ if __name__ == '__main__':
         slice_dir = os.path.join(save_dir, f'cremi/2d/{setname}/')
         command = f'python create_slices.py {ip} {mp} {slice_dir} -a 2 -s 1'
         subprocess.call(command.split(' '))
-    
+
     #finally, let's make the All Mitochondria dataset
     #from perez mito, lucchi, kasthuri, urocell, and guay
+    #1. create directories
+    #2. crop images from each benchmark into 256x256 patches
+    #this is needed so that datasets like Kasthuri with 85 large images
+    #have a similar number of patches relative to a dataset like
+    #UroCell with 3200 small images
+    #3. A portion of patches from the Kasthuri dataset contain
+    #nothing by background padding; we want to remove them
     
-    #first make the directories
+    #make the directories
     #no need for a test directory because we use the
     #source benchmarks' test sets
     if not os.path.isdir(os.path.join(save_dir, 'all_mito')):
@@ -237,5 +248,22 @@ if __name__ == '__main__':
     for l, bmk in zip(benchmark_mito_labels, benchmarks):
         command = f'python create_patches.py {save_dir}/{bmk}/train/images/ {save_dir}/all_mito/train/images/'
         subprocess.call(command.split(' '))
+        
         command = f'python create_patches.py {save_dir}/{bmk}/train/masks/ {save_dir}/all_mito/train/masks/ -l {l}'
         subprocess.call(command.split(' '))
+
+    #remove any blank images and their corresponding masks
+    impaths = np.sort(glob(os.path.join(save_dir, f'all_mito/train/images/*')))
+    mskpaths = np.sort(glob(os.path.join(save_dir, f'all_mito/train/masks/*')))
+    for ip, mp in zip(impaths, mskpaths):
+        assert(ip.replace('/images/', '/blank/') == mp.replace('/masks/', '/blank/')), "Image and mask file paths are not aligned!"
+        
+        #load the image file
+        image = imread(ip)
+        
+        #if more than 95% of the image is black padding
+        #remove the image and it's corresponding mask
+        thr = (256 ** 2) * 0.05
+        if (image > 0).sum() < thr:
+            os.remove(ip)
+            os.remove(mp)
