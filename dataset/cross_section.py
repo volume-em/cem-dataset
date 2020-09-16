@@ -118,7 +118,9 @@ if __name__ == "__main__":
             
             for idx in slice_indices:
                 index_str = str(idx).zfill(zpad)
-                slice_name = f'{exp_name}_{axis}_{index_str}.tiff'
+                #add the -LOC- to indicate the point of separation between
+                #the dataset name and the slice location information
+                slice_name = f'{exp_name}-LOC-{axis}_{index_str}.tiff'
                 
                 #don't save anything if the slice already exists
                 if os.path.isfile(os.path.join(savedir, slice_name)):       

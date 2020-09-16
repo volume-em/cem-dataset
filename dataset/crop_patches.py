@@ -8,13 +8,13 @@ may arise if this is not the case.
 This script takes a directory containing 2d tiff images and crops those large images
 into squares of a given dimension (default 224). In addition to creating the patch,
 it also calculates and saves a difference hash for that patch. Doing both in a single
-step significantly cuts down on I/O time.
+step significantly cuts down on I/O time. Both the patch and the hash are saved
+in the same directory. All patches are .tiff and all hashes are .npy
 
 Example usage:
 --------------
 
-python crop_patches.py {imdir} {patchdir} {hashdir} \
---crop_size 224 --hash_size 8 --processes 4
+python crop_patches.py {imdir} {patchdir} --crop_size 224 --hash_size 8 --processes 4
 
 For help with arguments:
 ------------------------
@@ -37,7 +37,7 @@ def calculate_hash(image, crop_size, hash_size=8):
     #to be recognized as unique
     return imagehash.dhash(Image.fromarray(image).resize(crop_size, crop_size), hash_size=hash_size).hash
 
-def patch_and_hash(impath, patchdir, hashdir, crop_size=224, hash_size=8):
+def patch_and_hash(impath, patchdir, crop_size=224, hash_size=8):
     #load the image
     image = imread(impath)
     
@@ -72,7 +72,7 @@ def patch_and_hash(impath, patchdir, hashdir, crop_size=224, hash_size=8):
                 
             #make the output file paths
             patch_path = os.path.join(patchdir, f'{prefix}_{ys}_{xs}.tiff')
-            hash_path = os.path.join(hashdir, f'{prefix}_{ys}_{xs}.npy')
+            hash_path = patch_path.replace('.tiff', '.npy')
             
             #save the patch and the hash
             imsave(patch_path, patch, check_contrast=False)
@@ -84,7 +84,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Create dataset for nn experimentation')
     parser.add_argument('imdir', type=str, metavar='imdir', help='Directory containing tiff images')
     parser.add_argument('patchdir', type=str, metavar='patchdir', help='Directory in which to save cropped patches')
-    parser.add_argument('hashdir', type=str, metavar='hashdir', help='Directory in which to save patch hashes')
     parser.add_argument('-cs', '--crop_size', dest='crop_size', type=int, metavar='crop_size', default=224,
                         help='Size of square image patches. Default 224.')
     parser.add_argument('-hs', '--hash_size', dest='hash_size', type=int, metavar='hash_size', default=8,
@@ -98,25 +97,20 @@ if __name__ == "__main__":
     #read in the parser arguments
     imdir = args.imdir
     patchdir = args.patchdir
-    hashdir = args.hashdir
     crop_size = args.crop_size
     hash_size = args.hash_size
     processes = args.processes
     
-    #make sure the patch and hash dirs
-    #exist, create them if not
+    #make sure the patchdir exists
     if not os.path.isdir(patchdir):
         os.mkdir(patchdir)
-        
-    if not os.path.isdir(hashdir):
-        os.mkdir(hashdir)
     
     #get the list of all tiff files in the imdir
     impaths = np.sort(glob(os.path.join(imdir, '*.tiff')))
     print(f'Found {len(impaths)} tiff images to crop.')
     
     def map_func(impath):
-        patch_and_hash(impath, patchdir, hashdir, crop_size, hash_size)    
+        patch_and_hash(impath, patchdir, crop_size, hash_size)    
         return None
     
     #loop over the images and save patches and hashes

@@ -11,7 +11,7 @@ from skimage.feature import canny, local_binary_pattern
 from skimage.filters.rank import entropy, geometric_mean
 
 start = time()
-time_limit = 12 * (3600) - (10 * 60) #give a 10 minute buffer for saving
+time_limit = 12 * (3600) - (10 * 60) #give a 10 minute cushion for saving
 
 def calc_features(imfile):
     if time() - start > time_limit:
