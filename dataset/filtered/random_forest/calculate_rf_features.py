@@ -24,6 +24,7 @@ python calculate_rf_features.py --help
 
 import os
 import numpy as np
+import dask.array as da
 from multiprocessing import Pool
 from glob import glob
 
