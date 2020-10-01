@@ -1,26 +1,121 @@
 #dataset parameters
-experiment: "guay"
+experiment_name: "guay"
 num_classes: 7
-class_names: "back,cell,mito,can_chan,alpha_gran,dense_gran,dense_gran_core"
+class_names: 
+  - "back"
+  - "cell"
+  - "mito"
+  - "can_chan"
+  - "alpha_gran"
+  - "dense_gran"
+  - "dense_gran_core"
+  
+class_weights:
+  - 0.1
+  - 0.1
+  - 1
+  - 1
+  - 0.1
+  - 3
+  - 3
 
-#set the paths for data directories, models, and pretrained weights
-data_path: "../data/2d/${experiment}/"
-model_path: "../models/${experiment}/"
-pretraining: "/data/IASEM/conradrw/models/MoCoV2_224_Unfiltered/current.pth.tar" #imagenet or none
+#set the directories for data and models
+data_dir: "/data/conradrw/benchmarks/guay/2d/"
+model_dir: "/data/conradrw/models/"
+
+#whether to log the run in MLFlow
+#either True or False
+logging: True
+
+#number of model checkpoints to save during training
+#if zero, the model's state is never saved
+num_save_checkpoints: 5
+
+#if a .pth file is given, model training will resume
+#from that checkpoint
+resume: ""
 
 #hyperparameters
-lr: 3e-3
-wd: 0.1
-iters: 1000
 bsz: 16
-lr_policy: "OneCycle"
-optim: "AdamW"
-crop_size: 512
+jobs: 4
+#choice of none, layer4, layer3, layer2, layer 1, or all
 finetune_layer: "none"
-save_path: "/data/IASEM/conradrw/models/benchmark/${experiment}/${source}/${1}_unet_1cycle_${iters}_iters_df_${data_frac}_ft_${finetune_layer}_${5}.pth"
-freeze_bn: "false"
+#choice of True or False
+unfreeze_encoder_bn: True
+#currently, only resnet50 is supported
+encoder: "resnet50"
 
-#set pixel norm values
+#set the encoder pretraining choice of:
+#random_init, imagenet_supervised, imagenet_mocov2, cellemnet_mocov2 
+#or a path to a custom .pth file with a state_dict
+pretraining: "imagenet_mocov2"
+
+#set the layers in the encoder to finetune choice of:
+#none, layer4, layer3, layer2, layer1, all
+finetune_layers: "none"
+
+lr: 0.003
+wd: 0.1
+#choice of AdamW or SGD
+optim: "AdamW"
+#choice of OneCycle, MultiStep, or Poly
+lr_policy: "OneCycle"
+
+#parameter only for SGD optim; AdamW uses default momentum values
+momentum: 0.9
+
+#iterations are used for Poly and OneCycle,
+#epochs are used for MultiStep
+iters: 100
+
+#parameters specific for Poly lr_policy
+power: 0.9
+
+#parameters specific to MultiStep lr_policy
+epochs: 10
+lr_decay_epochs:
+  - 6
+  - 8
+
+#pixel norm valuesfor the dataset
 norms:
-    mean: 0.55412821
-    stdev: 0.15759415
+  mean: 0.55412821
+  stdev: 0.15759415
+  
+#currently only IoU is supported
+metrics:
+  - "IoU"
+  
+#number of times to print/record metrics for 
+#train and validation data over the entire
+#training run
+num_prints: 10
+
+#list the augmentations to use during training
+crop_size: 320
+augmentations:
+  - aug: "PadIfNeeded"
+    min_height: 320
+    min_width: 320
+  - aug: "RandomResizedCrop"
+    height: 320
+    width: 320
+    scale:
+      - 0.08
+      - 1.0
+    ratio:
+      - 0.5
+      - 1.5
+  - aug: "Rotate"
+    limit: 180
+  - aug: "RandomBrightnessContrast"
+    brightness_limit: 0.3
+    contrast_limit: 0.3
+  - aug: "GaussNoise"
+    var_limit:
+      - 400
+      - 1200
+  - aug: "GaussianBlur"
+    blur_limit: 7
+  - aug: "HorizontalFlip"
+  - aug: "VerticalFlip"

@@ -29,14 +29,6 @@ def parse_args():
     
     #get the config file
     parser.add_argument('config', type=str, metavar='pretraining', help='Path to a config yaml file')
-    
-    #get pretraining and finetune layer parameters
-    parser.add_argument('pretraining', type=str, metavar='pretraining', default='none',
-                        help='Type of pretraining')
-    parser.add_argument('finetune_layer', type=str, metavar='finetune_layer', 
-                        default='all', help='layers to finetune: none, layer4, layer3, layer2, layer1, all')
-    parser.add_argument('--nolog', action='store_true', 
-                        help='if flag is given, then training results will not be logged in MLFlow')
 
     #return the arguments converted to a dictionary
     return vars(parser.parse_args())
@@ -55,11 +47,8 @@ if __name__ == "__main__":
     with open(args['config'], 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
         
-    #for ease, add the pretraining and finetune layer parameters
-    #to the config dictionary
+    #add the path to the config file for archiving
     config['config_file'] = args['config']
-    config['pretraining'] = args['pretraining']
-    config['finetune_layer'] = args['finetune_layer']
 
     #extract the experiment name
     experiment = config['experiment_name']
@@ -124,6 +113,14 @@ if __name__ == "__main__":
             for param in group.parameters():
                 param.requires_grad = True
                 
+    if config['unfreeze_encoder_bn']:
+        def unfreeze_encoder_bn(module):
+            if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+                for param in module.parameters():
+                    param.requires_grad = True
+
+        model.encoder.apply(unfreeze_encoder_bn)
+                
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(f'Using model with {params} trainable parameters!')
@@ -185,5 +182,5 @@ if __name__ == "__main__":
         os.mkdir(model_dir)
         
     cudnn.benchmark = True
-    trainer = Trainer(config, model, train, valid, logging=not args['nolog'])
+    trainer = Trainer(config, model, train, valid)
     trainer.train()

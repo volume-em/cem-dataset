@@ -8,6 +8,10 @@ class_names:
 data_dir: "/data/IASEM/conradrw/data/benchmarks/mito/2d/"
 model_dir: "/data/conradrw/models/"
 
+#whether to log the run in MLFlow
+#either True or False
+logging: True
+
 #number of model checkpoints to save during training
 #if zero, the model's state is never saved
 num_save_checkpoints: 5
@@ -21,24 +25,33 @@ bsz: 32
 jobs: 8
 #choice of none, layer4, layer3, layer2, layer 1, or all
 finetune_layer: "none"
-#choice of true or false
-freeze_bn: False
+#choice of True or False
+unfreeze_encoder_bn: True
 #currently, only resnet50 is supported
 encoder: "resnet50"
+
+#set the encoder pretraining choice of:
+#random_init, imagenet_supervised, imagenet_mocov2, cellemnet_mocov2 
+#or a path to a custom .pth file with a state_dict
+pretraining: "cellemnet_mocov2"
+
+#set the layers in the encoder to finetune choice of:
+#none, layer4, layer3, layer2, layer1, all
+finetune_layers: "none"
 
 lr: 0.003
 wd: 0.1
 #choice of AdamW or SGD
 optim: "AdamW"
 #choice of OneCycle, MultiStep, or Poly
-lr_policy: "MultiStep"
+lr_policy: "OneCycle"
 
 #parameter only for SGD optim; AdamW uses default momentum values
 momentum: 0.9
 
 #iterations are used for Poly and OneCycle,
 #epochs are used for MultiStep
-iters: 100
+iters: 500
 
 #parameters specific for Poly lr_policy
 power: 0.9

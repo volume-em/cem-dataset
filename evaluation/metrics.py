@@ -158,7 +158,6 @@ class ComposeMetrics:
         self.metrics_dict = metrics_dict
         self.class_names = class_names
         self.reset_on_print = reset_on_print
-        self.history = {}
         
     def evaluate(self, output, target):
         #calculate all the metrics in the dict
@@ -176,19 +175,12 @@ class ComposeMetrics:
             if self.class_names is None:
                 self.class_names = [f'class_{i}' for i in range(len(avg_values))]
             
-            for ix, class_name in enumerate(self.class_names):
+            for class_name, val in zip(self.class_names, avg_values):
                 names.append(f'{class_name}_{name}')
-                values.append(avg_values[ix])
+                values.append(val.item())
                 
             if self.reset_on_print:
                 metric.reset()
-                
-        for name, value in zip(names, values):
-            if name not in self.history:
-                self.history[name] = [value]
-            else:
-                self.history[name].append(value)
         
-        s = ' {}'.join(names)
-        print(s + ' {}  '.format(*values))
-        print('\n')
+        for name, value in zip(names, values):
+            print(f'{name}: {value:.3f}')

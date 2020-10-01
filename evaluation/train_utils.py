@@ -54,12 +54,9 @@ class Trainer:
     val_data: A pytorch dataloader object that will return pairs of images and
     segmentation masks from a validation dataset.
     
-    logging: Bool. If True, metrics and parameters are saved in an MLFlow run.
-    Default, True.
-    
     """
     
-    def __init__(self, config, model, trn_data, val_data=None, logging=True):
+    def __init__(self, config, model, trn_data, val_data=None):
         self.config = config
         self.model = model.cuda()
         self.trn_data = DataFetcher(trn_data)
@@ -118,7 +115,7 @@ class Trainer:
         self.val_metrics = ComposeMetrics(val_md, class_names)
         self.val_loss_meter = AverageMeter()
         
-        self.logging = logging
+        self.logging = config['logging']
         
         #now, if we're resuming from a previous run we need to load
         #the state for the model, optimizer, and schedule and resume
@@ -155,7 +152,7 @@ class Trainer:
             mlflow.start_run(run_id=checkpoint['run_id'])
         
         print(f'Loaded state from {checkpoint_fpath}')
-        print(f'Resuming from epoch {self.scheduler.last_epoch + 1}...')
+        print(f'Resuming from epoch {self.scheduler.last_epoch}...')
 
     def log_metrics(self, step, dataset):
         #get the corresponding losses and metrics dict for
@@ -173,8 +170,9 @@ class Trainer:
         #log all the metrics in our dict, using dataset as a prefix
         metrics = {}
         for k, v in metric_dict.items():
-            for ix, class_name in enumerate(self.trn_metrics.class_names):
-                metrics[dataset + '_' + class_name + '_' + k] = float(v.meter.avg)
+            values = v.meter.avg
+            for class_name, val in zip(self.trn_metrics.class_names, values):
+                metrics[dataset + '_' + class_name + '_' + k] = float(val.item())
                 
         mlflow.log_metrics(metrics, step=step)
     
@@ -201,7 +199,7 @@ class Trainer:
             last_epoch = self.scheduler.last_epoch + 1
             total_epochs = self.config['iters']
             iters_per_epoch = 1
-            outer_loop = tqdm(range(last_epoch, total_epochs + 1), file=sys.stdout, initial=last_epoch)
+            outer_loop = tqdm(range(last_epoch, total_epochs + 1), file=sys.stdout, initial=last_epoch, total=total_epochs)
             inner_loop = range(iters_per_epoch)
         else:
             last_epoch = self.scheduler.last_epoch + 1
@@ -225,7 +223,7 @@ class Trainer:
                 
                 #record the loss and evaluate metrics
                 self.trn_loss_meter.update(loss)
-                self.trn_metrics.evaluate(output, masks)
+                self.trn_metrics.evaluate(output.cpu(), masks.cpu())
                 
             #when we're at an eval_epoch we want to print
             #the training results so far and then evaluate
@@ -237,7 +235,7 @@ class Trainer:
                     self.log_metrics(epoch, dataset='train')
                 
                 print('\n') #print a new line to give space from progess bar
-                print(f'train_loss: {self.trn_loss_meter.avg}')
+                print(f'train_loss: {self.trn_loss_meter.avg:.3f}')
                 self.trn_loss_meter.reset()
                 #prints and automatically resets the metric averages to 0
                 self.trn_metrics.print()
@@ -250,7 +248,7 @@ class Trainer:
                         self.log_metrics(epoch, dataset='valid')
 
                     print('\n') #print a new line to give space from progess bar
-                    print(f'valid_loss: {self.val_loss_meter.avg}')
+                    print(f'valid_loss: {self.val_loss_meter.avg:.3f}')
                     self.val_loss_meter.reset()
                     #prints and automatically resets the metric averages to 0
                     self.val_metrics.print()
@@ -298,8 +296,8 @@ class Trainer:
                 images, masks = val_iter.load()
                 output = self.model.eval()(images)
                 loss = self.criterion(output, masks)
-                self.val_loss_meter(loss.item())
-                self.val_metrics.evaluate(output.detach(), masks)
+                self.val_loss_meter.update(loss.item())
+                self.val_metrics.evaluate(output.detach().cpu(), masks.cpu())
                 
         #loss and metrics are updated inplace, so there's nothing to return
         return None
@@ -327,7 +325,7 @@ class Trainer:
             state['run_id'] = mlflow.active_run().info.run_id
             
         #the last step is to create the name of the file to save
-        #the format is: name-of-experiment_pretraining_epoch.pth.tar
+        #the format is: name-of-experiment_pretraining_epoch.pth
         model_dir = self.config['model_dir']
         exp_name = self.config['experiment_name']
         pretraining = self.config['pretraining']
