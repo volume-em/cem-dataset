@@ -1,0 +1,25 @@
+#dataset parameters
+experiment: "perez_mito"
+num_classes: 1
+class_names: "mito"
+
+#set the paths for data directories, models, and pretrained weights
+data_path: "../data/${experiment}/"
+model_path: "../models/${experiment}/"
+pretraining: "/data/IASEM/conradrw/models/MoCoV2_224_Unfiltered/current.pth.tar" #imagenet or none
+
+#hyperparameters
+lr: 3e-3
+wd: 0.1
+iters: 2500
+bsz: 16
+lr_policy: "OneCycle"
+optim: "AdamW"
+crop_size: 480
+finetune_layer: "none"
+freeze_bn: "false"
+
+#set pixel norm values
+norms:
+    mean: 0.35009244
+    stdev: 0.01705255

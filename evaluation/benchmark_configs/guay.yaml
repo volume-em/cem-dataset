@@ -1,0 +1,26 @@
+#dataset parameters
+experiment: "guay"
+num_classes: 7
+class_names: "back,cell,mito,can_chan,alpha_gran,dense_gran,dense_gran_core"
+
+#set the paths for data directories, models, and pretrained weights
+data_path: "../data/2d/${experiment}/"
+model_path: "../models/${experiment}/"
+pretraining: "/data/IASEM/conradrw/models/MoCoV2_224_Unfiltered/current.pth.tar" #imagenet or none
+
+#hyperparameters
+lr: 3e-3
+wd: 0.1
+iters: 1000
+bsz: 16
+lr_policy: "OneCycle"
+optim: "AdamW"
+crop_size: 512
+finetune_layer: "none"
+save_path: "/data/IASEM/conradrw/models/benchmark/${experiment}/${source}/${1}_unet_1cycle_${iters}_iters_df_${data_frac}_ft_${finetune_layer}_${5}.pth"
+freeze_bn: "false"
+
+#set pixel norm values
+norms:
+    mean: 0.55412821
+    stdev: 0.15759415

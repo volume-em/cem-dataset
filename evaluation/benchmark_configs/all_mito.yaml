@@ -1,0 +1,93 @@
+#dataset parameters
+experiment_name: "all_mito"
+num_classes: 1
+class_names: 
+  - "mito"
+
+#set the directories for data and models
+data_dir: "/data/IASEM/conradrw/data/benchmarks/mito/2d/"
+model_dir: "/data/conradrw/models/"
+
+#number of model checkpoints to save during training
+#if zero, the model's state is never saved
+num_save_checkpoints: 5
+
+#if a .pth file is given, model training will resume
+#from that checkpoint
+resume: ""
+
+#hyperparameters
+bsz: 32
+jobs: 8
+#choice of none, layer4, layer3, layer2, layer 1, or all
+finetune_layer: "none"
+#choice of true or false
+freeze_bn: False
+#currently, only resnet50 is supported
+encoder: "resnet50"
+
+lr: 0.003
+wd: 0.1
+#choice of AdamW or SGD
+optim: "AdamW"
+#choice of OneCycle, MultiStep, or Poly
+lr_policy: "MultiStep"
+
+#parameter only for SGD optim; AdamW uses default momentum values
+momentum: 0.9
+
+#iterations are used for Poly and OneCycle,
+#epochs are used for MultiStep
+iters: 100
+
+#parameters specific for Poly lr_policy
+power: 0.9
+
+#parameters specific to MultiStep lr_policy
+epochs: 10
+lr_decay_epochs:
+  - 6
+  - 8
+
+#pixel norm valuesfor the dataset
+norms:
+  mean: 0.555664
+  stdev: 0.09931
+  
+#currently only IoU is supported
+metrics:
+  - "IoU"
+  
+#number of times to print/record metrics for 
+#train and validation data over the entire
+#training run
+num_prints: 10
+
+#list the augmentations to use during training
+crop_size: 256
+augmentations:
+  - aug: "PadIfNeeded"
+    min_height: 256
+    min_width: 256
+  - aug: "RandomResizedCrop"
+    height: 256
+    width: 256
+    scale:
+      - 0.08
+      - 1.0
+    ratio:
+      - 0.5
+      - 1.5
+  - aug: "Rotate"
+    limit: 180
+  - aug: "RandomBrightnessContrast"
+    brightness_limit: 0.3
+    contrast_limit: 0.3
+  - aug: "GaussNoise"
+    var_limit:
+      - 400
+      - 1200
+  - aug: "GaussianBlur"
+    blur_limit: 7
+  - aug: "HorizontalFlip"
+  - aug: "VerticalFlip"
