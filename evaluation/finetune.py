@@ -62,6 +62,8 @@ if __name__ == "__main__":
     #then we'll have to download them separately from the 
     #built-in pytorch function
     if pretraining in ['imagenet_mocov2', 'cellemnet_mocov2']:
+        #this loads the state dict and adds the prefix "encoder."
+        #to the keys such that they match those in the UNet model
         state_dict, norms = load_pretrained_state_for_unet(config['encoder'], pretraining)
         if norms == None:
             gray_channels = 3
@@ -74,6 +76,8 @@ if __name__ == "__main__":
         model = smp.Unet(config['encoder'], in_channels=gray_channels, encoder_weights=None, classes=config['num_classes'])
         msg = model.load_state_dict(state_dict, strict=False)
     elif pretraining == 'imagenet_supervised':
+        #create the UNet with imagenet supervised weights which are
+        #automatically downloaded through smp
         model = smp.Unet(config['encoder'], encoder_weights='imagenet', classes=config['num_classes'])
         gray_channels = 3
         normalize = Normalize() #default is ImageNet means and standard deviations
@@ -94,7 +98,8 @@ if __name__ == "__main__":
         print('No valid pretraining found. Using randomly initialized weights!')
         gray_channels = 1
         model = smp.Unet(config['encoder'], in_channels=gray_channels, encoder_weights=None, classes=config['num_classes'])
-        normalize = Normalize(**config['norms']) #use the norms defined for the dataset in the config file
+        #use the norms defined for the dataset in the config file
+        normalize = Normalize(**config['norms'])
 
     #freeze all encoder layers to start and only open
     #them when specified
@@ -105,6 +110,8 @@ if __name__ == "__main__":
     finetune_layer = config['finetune_layer']
     encoder_groups = [mod[1] for mod in model.encoder.named_children()]
     if finetune_layer != 'none':
+        #this indices should work for any ResNet model, but were specifically
+        #chosen for ResNet50
         layer_index = {'all': 0, 'layer1': 4, 'layer2': 5, 'layer3': 6, 'layer4': 7}
         start_layer = layer_index[finetune_layer]
 
@@ -113,14 +120,21 @@ if __name__ == "__main__":
             for param in group.parameters():
                 param.requires_grad = True
                 
+    #in the MoCo paper, the authors suggest make the parameters
+    #in BatchNorm layers trainable to help account for the smaller
+    #magnitudes of weights that typically occur with unsupervised
+    #pretraining
     if config['unfreeze_encoder_bn']:
         def unfreeze_encoder_bn(module):
             if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
                 for param in module.parameters():
                     param.requires_grad = True
 
+        #this makes all the batchnorm layers in the encoder trainable
         model.encoder.apply(unfreeze_encoder_bn)
                 
+    #print out the number of trainable parameters in the whole model
+    #unfreeze_encoder_bn adds about 50k more
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(f'Using model with {params} trainable parameters!')
@@ -152,11 +166,14 @@ if __name__ == "__main__":
     data_dir = config['data_dir']
     train_dir = 'train/'
         
+    #create the segmentation data for training
     bsz = config['bsz']
     trn_data = SegmentationData(os.path.join(data_dir, train_dir), tfs=augs, gray_channels=gray_channels, 
                         segmentation_classes=config['num_classes'])
     config['n_images'] = len(trn_data.fnames)
     
+    #create the dataloader
+    #NOTE: if using CPU, the pin_memory argument must be set to False
     train = DataLoader(trn_data, batch_size=bsz, shuffle=True, pin_memory=True, drop_last=True, num_workers=config['jobs'])
      
     #check for a validation directory and use it if it exists
@@ -164,6 +181,11 @@ if __name__ == "__main__":
     val_dir = 'valid/'
     if os.path.isdir(os.path.join(data_dir, val_dir)):
         #eval_augs are always the same
+        #since we ultimately want to run our model on
+        #full size images and not cropped patches, we use
+        #FactorResize. This is a custom augmentation that
+        #simply resizes the image to the nearest multiple
+        #of 32 (which is necessary to work with the UNet model)
         eval_augs = Compose([
             FactorResize(32),
             normalize,
@@ -172,6 +194,8 @@ if __name__ == "__main__":
             
         val_data = SegmentationData(os.path.join(data_dir, val_dir), tfs=eval_augs, gray_channels=gray_channels, 
                                     segmentation_classes=config['num_classes'])
+        
+        #using a batch size of 1 means that we report a per-image IoU score
         valid = DataLoader(val_data, batch_size=1, shuffle=False, pin_memory=True, num_workers=config['jobs'])
     else:
         valid = None
@@ -181,6 +205,11 @@ if __name__ == "__main__":
     if not os.path.isdir(model_dir):
         os.mkdir(model_dir)
         
+    #the cudnn.benchmark flag speeds up performance
+    #when the model input size is constant. See: 
+    #https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
     cudnn.benchmark = True
+    
+    #train the model using the parameters in the config file
     trainer = Trainer(config, model, train, valid)
     trainer.train()
