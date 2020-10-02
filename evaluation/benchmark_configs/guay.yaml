@@ -48,7 +48,7 @@ encoder: "resnet50"
 #set the encoder pretraining choice of:
 #random_init, imagenet_supervised, imagenet_mocov2, cellemnet_mocov2 
 #or a path to a custom .pth file with a state_dict
-pretraining: "imagenet_mocov2"
+pretraining: "cellemnet_mocov2"
 
 #set the layers in the encoder to finetune choice of:
 #none, layer4, layer3, layer2, layer1, all
@@ -66,7 +66,7 @@ momentum: 0.9
 
 #iterations are used for Poly and OneCycle,
 #epochs are used for MultiStep
-iters: 100
+iters: 1000
 
 #parameters specific for Poly lr_policy
 power: 0.9
@@ -92,14 +92,13 @@ metrics:
 num_prints: 10
 
 #list the augmentations to use during training
-crop_size: 320
 augmentations:
   - aug: "PadIfNeeded"
-    min_height: 320
-    min_width: 320
+    min_height: 512
+    min_width: 512
   - aug: "RandomResizedCrop"
-    height: 320
-    width: 320
+    height: 512
+    width: 512
     scale:
       - 0.08
       - 1.0

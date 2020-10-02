@@ -51,7 +51,7 @@ momentum: 0.9
 
 #iterations are used for Poly and OneCycle,
 #epochs are used for MultiStep
-iters: 500
+iters: 5000
 
 #parameters specific for Poly lr_policy
 power: 0.9
@@ -77,7 +77,6 @@ metrics:
 num_prints: 10
 
 #list the augmentations to use during training
-crop_size: 256
 augmentations:
   - aug: "PadIfNeeded"
     min_height: 256
