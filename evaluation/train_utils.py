@@ -2,6 +2,7 @@ import sys, os, yaml
 import mlflow
 import torch
 import torch.nn as nn
+import torch.backends.cudnn as cudnn
 from torch.optim import AdamW, SGD
 from torch.optim.lr_scheduler import OneCycleLR, MultiStepLR, LambdaLR
 from tqdm import tqdm
@@ -212,6 +213,11 @@ class Trainer:
         eval_epochs = total_epochs // self.config['num_prints']
         save_epochs = total_epochs // self.config['num_save_checkpoints']
         
+        #the cudnn.benchmark flag speeds up performance
+        #when the model input size is constant. See: 
+        #https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
+        cudnn.benchmark = True
+        
         #perform training over the outer and inner loops
         for epoch in outer_loop:
             for iteration in inner_loop:
@@ -242,6 +248,10 @@ class Trainer:
                 
                 #run evaluation if we have validation data
                 if self.val_data is not None:
+                    #before evaluation we want to turn off cudnn
+                    #benchmark because the input sizes of validation
+                    #images are not necessarily constant
+                    cudnn.benchmark = False
                     self.evaluate()
                     
                     if self.logging:
@@ -252,6 +262,9 @@ class Trainer:
                     self.val_loss_meter.reset()
                     #prints and automatically resets the metric averages to 0
                     self.val_metrics.print()
+                    
+                    #turn cudnn.benchmark back on before returning to training
+                    cudnn.benchmark = True
                     
             #update the optimizer schedule
             self.scheduler.step()

@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import segmentation_models_pytorch as smp
-import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
 from albumentations import (
@@ -204,11 +203,6 @@ if __name__ == "__main__":
     model_dir = config['model_dir']
     if not os.path.isdir(model_dir):
         os.mkdir(model_dir)
-        
-    #the cudnn.benchmark flag speeds up performance
-    #when the model input size is constant. See: 
-    #https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936
-    cudnn.benchmark = True
     
     #train the model using the parameters in the config file
     trainer = Trainer(config, model, train, valid)
