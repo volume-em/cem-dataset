@@ -63,6 +63,7 @@ if __name__ == "__main__":
     if pretraining in ['imagenet_mocov2', 'cellemnet_mocov2']:
         #this loads the state dict and adds the prefix "encoder."
         #to the keys such that they match those in the UNet model
+        #it 
         state_dict, norms = load_pretrained_state_for_unet(config['encoder'], pretraining)
         if norms == None:
             gray_channels = 3
@@ -99,6 +100,11 @@ if __name__ == "__main__":
         model = smp.Unet(config['encoder'], in_channels=gray_channels, encoder_weights=None, classes=config['num_classes'])
         #use the norms defined for the dataset in the config file
         normalize = Normalize(**config['norms'])
+        
+    #importantly, we want to store the mean and std that we're
+    #using for training with theses weights. this eliminates
+    #any confusion during inference.
+    config['training_norms'] = [normalize.mean, normalize.std]
 
     #freeze all encoder layers to start and only open
     #them when specified
@@ -119,10 +125,11 @@ if __name__ == "__main__":
             for param in group.parameters():
                 param.requires_grad = True
                 
-    #in the MoCo paper, the authors suggest make the parameters
+    #in the MoCo paper, the authors suggest making the parameters
     #in BatchNorm layers trainable to help account for the smaller
     #magnitudes of weights that typically occur with unsupervised
-    #pretraining
+    #pretraining. we haven't found this to be beneficial for the
+    #OneCycle LR policy, it might be for other lr policies though.
     if config['unfreeze_encoder_bn']:
         def unfreeze_encoder_bn(module):
             if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
@@ -138,12 +145,12 @@ if __name__ == "__main__":
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(f'Using model with {params} trainable parameters!')
     
-    #construct set of augmentations from config
+    #construct the set of augmentations from config
     dataset_augs = []
     for aug_params in config['augmentations']:
         aug_name = aug_params['aug']
         
-        #lookup this name and replace it with the 
+        #lookup aug_name and replace it with the 
         #correct augmentation class
         aug = augmentation_dict[aug_name]
         
@@ -161,11 +168,9 @@ if __name__ == "__main__":
         ToTensorV2()
     ])
     
-    #create pytorch datasets
+    #create the segmentation data for training
     data_dir = config['data_dir']
     train_dir = 'train/'
-        
-    #create the segmentation data for training
     bsz = config['bsz']
     trn_data = SegmentationData(os.path.join(data_dir, train_dir), tfs=augs, gray_channels=gray_channels, 
                         segmentation_classes=config['num_classes'])
@@ -173,11 +178,13 @@ if __name__ == "__main__":
     
     #create the dataloader
     #NOTE: if using CPU, the pin_memory argument must be set to False
+    #In the future, we may add a "cpu" argument to the config; we expect
+    #that most people will have access to a GPU though.
     train = DataLoader(trn_data, batch_size=bsz, shuffle=True, pin_memory=True, drop_last=True, num_workers=config['jobs'])
      
     #check for a validation directory and use it if it exists
     #if not, then we don't use any validation data
-    val_dir = 'valid/'
+    val_dir = 'none/'
     if os.path.isdir(os.path.join(data_dir, val_dir)):
         #eval_augs are always the same
         #since we ultimately want to run our model on
@@ -185,6 +192,9 @@ if __name__ == "__main__":
         #FactorResize. This is a custom augmentation that
         #simply resizes the image to the nearest multiple
         #of 32 (which is necessary to work with the UNet model)
+        #if working with very large images that don't fit in memory
+        #it could be swapped out for a CenterCrop. the results will
+        #be less reflective of performance in the test case however.
         eval_augs = Compose([
             FactorResize(32),
             normalize,
@@ -199,11 +209,14 @@ if __name__ == "__main__":
     else:
         valid = None
     
-    #create model path ahead of time
+    #create model path ahead of time so that
+    #we don't try to save to a directory that doesn't
+    #exist
     model_dir = config['model_dir']
     if not os.path.isdir(model_dir):
         os.mkdir(model_dir)
     
     #train the model using the parameters in the config file
+    #TODO: add a progress bar option
     trainer = Trainer(config, model, train, valid)
     trainer.train()
