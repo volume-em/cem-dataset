@@ -93,12 +93,15 @@ class IoU:
         empty_dims = (1,) * (target.ndim - 2)
         
         if n_classes > 1:
-            #one-hot encode the target (B, 1, H, W) --> (B, N, H, W)
+            #softmax the output and argmax
+            output = nn.Softmax(dim=1)(output) #(B, NC, H, W)
+            max_idx = torch.argmax(output, 1, keepdim=True) #(B, 1, H, W)
+            
+            #one hot encode the target and output
             k = torch.arange(0, n_classes).view(1, n_classes, *empty_dims).to(target.device)
             target = (target == k)
-            
-            #softmax the output
-            output = nn.Softmax(dim=1)(output)
+            output_onehot = torch.zeros_like(output)
+            output_onehot.scatter_(1, max_idx, 1)
         else:
             #just sigmoid the output
             output = (nn.Sigmoid()(output) > 0.5).long()
@@ -106,8 +109,8 @@ class IoU:
         #cast target to the correct type for operations
         target = target.type(output.dtype)
         
-        #multiply the tensors, everything that is still as 1 is part of the intersection
-        #(N,)
+        #multiply the tensors, everything that is still as 1 is 
+        #part of the intersection (N,)
         dims = (0,) + tuple(range(2, target.ndimension()))
         intersect = torch.sum(output * target, dims)
         
