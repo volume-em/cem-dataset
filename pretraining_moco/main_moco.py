@@ -287,7 +287,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
                 'optimizer' : optimizer.state_dict(),
-                'norms': [mean_pixel[0], std_pixel[0]],
+                'norms': [mean_pixel, std_pixel],
             }, is_best=False, filename=os.path.join(args.model_dir, 'current.pth.tar'))
             
             #save checkpoint every save_freq epochs
@@ -297,7 +297,7 @@ def main_worker(gpu, ngpus_per_node, args):
                     'arch': args.arch,
                     'state_dict': model.state_dict(),
                     'optimizer' : optimizer.state_dict(),
-                    'norms': [mean_pixel[0], std_pixel[0]],
+                    'norms': [mean_pixel, std_pixel],
                 }, is_best=False, filename=os.path.join(args.model_dir + 'checkpoint_{:04d}.pth.tar'.format(epoch + 1)))
 
 
