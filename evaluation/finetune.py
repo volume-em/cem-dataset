@@ -28,6 +28,17 @@ def parse_args():
     
     #get the config file
     parser.add_argument('config', type=str, metavar='pretraining', help='Path to a config yaml file')
+    
+    #the next arguments should already be defined in the config file
+    #however, it's sometimes desirable to override them, especially
+    #when using Snakemake to run the scripts
+    parser.add_argument('-pf', type=str, dest='pf', metavar='pretraining_file', 
+                        help='Path to a pretained state_dict')
+    parser.add_argument('-n', type=int, dest='n', metavar='iters', 
+                        help='Number of training iterations')
+    ft_layer_choices = ['all', 'layer4', 'layer3', 'layer2', 'layer1', 'none']
+    parser.add_argument('-ft', type=str, dest='ft', metavar='finetune_layer', choices=ft_layer_choices,
+                        help='ResNet encoder layers to finetune')
 
     #return the arguments converted to a dictionary
     return vars(parser.parse_args())
@@ -48,6 +59,14 @@ if __name__ == "__main__":
         
     #add the path to the config file for archiving
     config['config_file'] = args['config']
+    
+    #overwrite the pretraining, iterations, or finetuning layer
+    if args['pf'] is not None:
+        config['pretraining'] = args['pf']
+    if args['n'] is not None:
+        config['iters'] = args['n']
+    if args['ft'] is not None:
+        config['finetune_layer'] = args['ft']
 
     #extract the experiment name
     experiment = config['experiment_name']
