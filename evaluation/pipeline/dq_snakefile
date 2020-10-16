@@ -1,0 +1,99 @@
+"""
+SnakeFile for testing the affects of data quality (dq) on downstream
+segmentation performance. This is measured by pretraining on different
+EM datasets.
+
+In our paper we considered:
+     - Bloss et al. 2018
+     - Raw CellEMNet
+     - Deduplicated CellEMNet
+     - Filtered CellEMNet
+     
+The publicly available weights were pretrained on Filtered CellEMNet.
+If desired, the others can be provided upon request (open an issue on GitHub).
+In it's current state this script is only intended as a guide for testing new
+pretrained weights (and comparing them). The details like pretrained weight
+paths will need to be filled in by the user. It's assumed that the weight files
+we generated with the moco training script that's part of this repository. If not,
+you'll need to add a key to the state called "norms" and is a list of the mean
+and standard deviation pixels used during pretraining.
+     
+The finetune.py script, by default, saves state files with the format:
+
+{model_directory}/{benchmark_name}-{pretraining_file_directory}_ft_{finetune_layer}_epoch{epoch}_of_{total_epochs}.pth'
+
+where the pretraining file directory is the directory in which the pretrained
+weights reside, for example:
+
+pretraining = 'models/MoCoV2_Filtered_CellEMNet/current.pth.tar'
+--> pretraining_file_directory = 'MoCoV2_Filtered_CellEMNet'
+
+and where epoch and total_epochs may refer to training iterations depending on the given
+learning rate policy (iterations for Poly and OneCycle, epochs for MultiStep)
+
+"""
+import os
+from itertools import product
+
+#location of the finetune and inference scripts
+SCRIPT_PATH = '../'
+
+#directory to save models
+BASE_MODEL_DIR = '../models/data_quality/'
+
+#let's make the model path
+if not os.path.isdir(BASE_MODEL_DIR):
+    os.makedirs(BASE_MODEL_DIR)
+
+#the finetune layers are zipped together with pretrainings
+#such that they form pairs like (random_init, all), (imagenet_supervised, none), etc.
+#THESE ARE JUST DUMMY FILE PATHS
+PRETRAINING_PATHS = ['models/MoCoV2_Bloss/current.pth.tar', 'models/MoCoV2_CellEMNet/current.pth.tar']
+PRETRAINING_LOOKUP = {ptp.split('/')[-2]: ptp for ptp in PRETRAINING_PATHS}
+PRETRAINING_FILE_DIRS = list(PRETRAINING_LOOKUP.keys())
+FINETUNE_LAYERS = ['none', 'none']
+
+BENCHMARKS = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 'perez_mito', 'perez_nuclei', 
+              'perez_nucleoli', 'guay', 'urocell', 'cremi', 'all_mito']
+
+#directory with the benchmark configuration files
+CONFIG_DIR = '../benchmark_configs/'
+
+#we tested with 5000 iterations;
+#no reason why it has to be though
+ITERATIONS = [5000]
+
+def zip_and_product(*iterables):
+    for it in iterables:
+        print(it)
+    
+    #first we're going to zip together the pretraining
+    #and finetune layers
+    ptft = zip(iterables[1], iterables[2])
+    #now we take the product
+    wildcard_product = product(iterables[0], ptft, iterables[3])
+    
+    #list all the products
+    out_product = []
+    for pr in list(wildcard_product):
+        out_product.append((pr[0], *pr[1], pr[2]))
+    
+    return iter(out_product)
+
+rule all:
+    input:
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining_file_dir}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth'), zip_and_product,
+               benchmark=BENCHMARKS, pretraining_file_dir=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS)
+        
+rule train:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark}.yaml')
+    params:
+        md = os.path.join(BASE_MODEL_DIR), #directory to save benchmark model states
+        n = lambda wildcards: int(wildcards.iters), #number of training iterations
+        ft = '{finetune_layer}',
+        pf = lambda wildcards: PRETRAINING_LOOKUP[wildcards.pretraining]
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+    script:
+        os.path.join(SCRIPT_PATH, 'finetune.py')
