@@ -109,14 +109,21 @@ if __name__ == '__main__':
     #2. How many input channels? Get it from the length of the norms
     #3. How many output channels? Get it from size of the last
     #parameter in the state_dict (the output bias tensor)
-    #norms = state['norms']
-    norms = [0.58331613, 0.09966064]
+    norms = state['norms']
     
     #if there are multiple channels, the mean and std will
     #be lists, otherwise their just single floats
     #gray channels is the same as input channels
     gray_channels = len(norms[0]) if hasattr(norms[0], '__len__') else 1
     num_classes = list(state['state_dict'].values())[-1].size(0) #same as output channels
+    
+    #determine all of the eval_classes
+    #always ignoring 0 (background)
+    if eval_classes is None:
+        if num_classes == 1:
+            eval_classes = [1]
+        else:
+            eval_classes = list(range(1, num_classes))
     
     #create the evaluation transforms with the correct normalization
     #and use FactorResize to resize images such that height and width 
@@ -183,17 +190,9 @@ if __name__ == '__main__':
             #notice that the H,W will be different because
             #the mask is not resized by FactorResize
             mask = data['mask'].squeeze().numpy()  #(1, H, W) --> (H, W)
-        
-            #now for the last step: calculate the iou
-            #determine all of the eval_classes
-            #always ignoring 0 (background)
-            if eval_classes is None:
-                labels = np.unique(mask)[:1]
-            else:
-                labels = eval_classes
 
             class_ious = []
-            for label in labels:
+            for label in eval_classes:
                 #only consider areas in the mask and prediction
                 #corresponding to the current label
                 label_mask = mask == label
@@ -240,7 +239,7 @@ if __name__ == '__main__':
                     #evaluation is much easier here
                     intersect = np.logical_and(label_pred, label_mask).sum()
                     union = np.logical_or(label_pred, label_mask).sum()
-
+                
                 class_ious.append((intersect + 1e-5) / (union + 1e-5))
 
             image_ious.append(class_ious)
@@ -249,8 +248,8 @@ if __name__ == '__main__':
     if not inference_only:
         image_ious = np.array(image_ious)
         mean_class_ious = image_ious.mean(axis=0)
-        for ix, mci in enumerate(mean_class_ious):
-            print(f'Class {ix} IoU 2d: {mci}')
+        for label, mci in zip(eval_classes, mean_class_ious):
+            print(f'Class {label} IoU 2d: {mci}')
             
         #print the overall mean
         mean_iou = image_ious.mean()

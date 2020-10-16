@@ -90,7 +90,7 @@ if __name__ == '__main__':
     
     #there are a few parameters that we need to extract from
     #the model state
-    #1. What are the norms? Saved in the state dict
+    #1. What are the norms? Saved in the state file
     #2. How many input channels? Get it from the length of the norms
     #3. How many output channels? Get it from size of the last
     #parameter in the state_dict (the output bias tensor)
@@ -229,11 +229,12 @@ if __name__ == '__main__':
             
         #if we defined eval classes, then we'll only
         #consider them during evaluation. otherwise we'll
-        #consider all labels that appear in gtvol
+        #consider all labels
         if eval_classes is None:
-            #get the unique labels in gtvolume
-            #always excluding 0 (background)
-            eval_classes = np.unique(gtvolume)[1:]
+            if num_classes == 1:
+                eval_classes = [1]
+            else:
+                eval_classes = list(range(1, num_classes))
             
         #loop over each of the eval_classes and
         #calculate the IoUs
@@ -244,9 +245,8 @@ if __name__ == '__main__':
             intersect = np.logical_and(prediction_volume == label, gtvolume == label).sum()
             union = np.logical_or(prediction_volume == label, gtvolume == label).sum()
             
-            #because we're evaluating exclusively over labels that exist
-            #in the volume, we know that union is always >0
-            iou = intersect / union
+            #add small epsilon to prevent zero division
+            iou = (intersect + 1e-5) / (union + 1e-5)
             
             #print the class IoU
             print(f'Class {label} IoU 3d: {iou}')
@@ -262,4 +262,5 @@ if __name__ == '__main__':
         if run_id is not None:
             with mlflow.start_run(run_id=run_id) as run:
                 mlflow.log_metric('Mean_IoU_3d', mean_iou, step=0)
+                
             print('Stored mean IoU in mlflow run.')
