@@ -1,4 +1,8 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+"""
+Copied without modification from https://github.com/facebookresearch/moco/blob/master/moco/builder.py
+Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+"""
+
 import torch
 import torch.nn as nn
 

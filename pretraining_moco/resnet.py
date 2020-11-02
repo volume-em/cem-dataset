@@ -1,3 +1,12 @@
+"""
+Copied with modification from https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py.
+
+Modifications:
+--------------
+1. Added in_channels argument to resnet (enables changing the input
+   image size for 3 channels to 1 channel).
+"""
+
 import torch
 import torch.nn as nn
 
