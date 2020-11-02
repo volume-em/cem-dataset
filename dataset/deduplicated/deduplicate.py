@@ -60,7 +60,7 @@ if __name__ == "__main__":
     #has slightly slower I/O but saves a considerable amount
     #of memory. In case this deduplication script has been run before, we'll
     #check to see if the dask array already exists
-    da_impaths_path = os.path.join(patchdir, 'unfiltered_fpaths.npz')
+    da_impaths_path = os.path.join(patchdir, 'raw_fpaths.npz')
     if not os.path.isfile(da_impaths_path):
         impaths = np.sort(glob(os.path.join(patchdir, '*.tiff')))
         impaths = da.from_array(impaths)
