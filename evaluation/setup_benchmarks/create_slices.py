@@ -44,7 +44,7 @@ if __name__ == '__main__':
     #load the image and labelmap volumes
     image = sitk.ReadImage(impath)
     labelmap = sitk.ReadImage(mskpath)
-
+    
     #establish a filename prefix from the impath
     exp_name = impath.split('/')[-1].split('.')[0]
 

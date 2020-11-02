@@ -92,7 +92,7 @@ class Trainer:
                 weight = torch.Tensor(config['class_weights']).float().cuda()
             else:
                 weight = None
-                
+            
             self.criterion = nn.CrossEntropyLoss(weight=weight).cuda()
         else:
             self.criterion = nn.BCEWithLogitsLoss().cuda()
@@ -138,6 +138,21 @@ class Trainer:
 
             #add the config file as an artifact
             mlflow.log_artifact(config['config_file'])
+            
+            #we don't want to add everything in the config
+            #to mlflow parameters, we'll just add the most
+            #likely to change parameters
+            mlflow.log_param('lr_policy', config['lr_policy'])
+            mlflow.log_param('optim', config['optim'])
+            mlflow.log_param('lr', config['lr'])
+            mlflow.log_param('wd', config['wd'])
+            mlflow.log_param('bsz', config['bsz'])
+            mlflow.log_param('momentum', config['momentum'])
+            mlflow.log_param('iters', config['iters'])
+            mlflow.log_param('epochs', config['epochs'])
+            mlflow.log_param('encoder', config['encoder'])
+            mlflow.log_param('finetune_layer', config['finetune_layer'])
+            mlflow.log_param('pretraining', config['pretraining'])
                 
     def resume(self, checkpoint_fpath):
         """
@@ -146,8 +161,10 @@ class Trainer:
         """
         checkpoint = torch.load(checkpoint_fpath, map_location='cpu')
         self.model.load_state_dict(checkpoint['state_dict'])
-        self.scheduler.load_state_dict(checkpoint['scheduler'])
-        self.optimizer.load_state_dict(checkpoint['optimizer'])
+        
+        if not self.config['restart_training']:
+            self.scheduler.load_state_dict(checkpoint['scheduler'])
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
         
         if self.logging and 'run_id' in checkpoint:
             mlflow.start_run(run_id=checkpoint['run_id'])
@@ -330,9 +347,12 @@ class Trainer:
         trainer = Trainer(...)
         trainer.save_model(model_path + 'new_model.pt')
         """
+        
+        #save the state together with the norms that we're using
         state = {'state_dict': self.model.state_dict(),
                  'scheduler': self.scheduler.state_dict(),
-                 'optimizer': self.optimizer.state_dict()}
+                 'optimizer': self.optimizer.state_dict(), 
+                 'norms': self.config['training_norms']}
         
         if self.logging:
             state['run_id'] = mlflow.active_run().info.run_id
@@ -342,12 +362,19 @@ class Trainer:
         model_dir = self.config['model_dir']
         exp_name = self.config['experiment_name']
         pretraining = self.config['pretraining']
+        ft_layer = self.config['finetune_layer']
+        
+        if self.config['lr_policy'] != 'MultiStep':
+            total_epochs = self.config['iters']
+        else:
+            total_epochs = self.config['epochs']
+            
         if os.path.isfile(pretraining):
             #this is slightly clunky, but it handles the case
             #of using custom pretrained weights from a file
             #usually there aren't any '.'s other than the file
             #extension
-            pretraining = pretraining.split('/')[-1].split('.')[0]
+            pretraining = pretraining.split('/')[-2]#.split('.')[0]
             
-        save_path = os.path.join(model_dir, f'{exp_name}_{pretraining}_epoch{epoch}.pth.tar')   
+        save_path = os.path.join(model_dir, f'{exp_name}-{pretraining}_ft_{ft_layer}_epoch{epoch}_of_{total_epochs}.pth')   
         torch.save(state, save_path)

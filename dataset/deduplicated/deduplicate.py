@@ -75,12 +75,11 @@ if __name__ == "__main__":
         #function to extract the name of a dataset from the patch image file path
         #in the cross_section.py script we added the handy -LOC- indicator to
         #easily identify the source dataset from location information
-        #for a dask array we have to call .compute() to load into memory
-        return imf.compute().split('/')[-1].split('-LOC-')[0]
+        return imf.split('/')[-1].split('-LOC-')[0]
 
     #extract the set of unique dataset names from all the impaths
     with Pool(processes) as pool:
-        datasets = np.array(pool.map(get_dataset_name, impaths))
+        datasets = np.array(pool.map(get_dataset_name, impaths.compute()))
 
     #because we sorted the impaths, we know that all images from the
     #same dataset will be grouped together. therefore, we only need

@@ -64,9 +64,6 @@ CONFIG_DIR = '../benchmark_configs/'
 ITERATIONS = [5000]
 
 def zip_and_product(*iterables):
-    for it in iterables:
-        print(it)
-    
     #first we're going to zip together the pretraining
     #and finetune layers
     ptft = zip(iterables[1], iterables[2])

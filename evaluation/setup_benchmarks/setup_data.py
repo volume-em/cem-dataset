@@ -3,6 +3,7 @@ import SimpleITK as sitk
 import numpy as np
 from skimage.io import imread, imsave
 from glob import glob
+from skimage.transform import resize
 from h5py import File
 
 def parse_args():
@@ -83,7 +84,7 @@ if __name__ == '__main__':
         prefix = orig_name.split('.')[0]
         new_name = orig_name.replace(f'{prefix}.', '') #remove the prefix and the trailing dot
         os.rename(fp, fp.replace(orig_name, new_name))
-        
+    
     #next, the guay dataset:
     #1. image volumes are 16-bit signed pixels, convert them to 8-bit unsigned
     #2. mask volumes are 16-bit unsigned pixels, convert them to 8-bit unsigned
@@ -108,6 +109,11 @@ if __name__ == '__main__':
         #convert to uint8
         vol = vol.astype(np.uint8)
         
+        #resize to isotropy
+        iso_shape = tuple([s * t for s,t in zip(vol.shape, [5, 1, 1])])
+        vol = resize(vol, iso_shape, preserve_range=True)
+        vol = vol.astype(np.uint8)
+        
         #create a new volume
         sitk.WriteImage(sitk.GetImageFromArray(vol), ip.replace('.tif', '.nrrd'))
         
@@ -122,8 +128,14 @@ if __name__ == '__main__':
         #convert to uint8
         vol = sitk.Cast(vol, sitk.sitkUInt8)
         
+        #resize to isotropy
+        vol = sitk.GetArrayFromImage(vol)
+        iso_shape = tuple([s * t for s,t in zip(vol.shape, [5, 1, 1])])
+        vol = resize(vol, iso_shape, preserve_range=True, order=0) #nearest neighbor interp
+        vol = vol.astype(np.uint8)
+        
         #replace '-labels' with '-images' in the filename
-        sitk.WriteImage(vol, mp.replace('-labels.tif', '-images.nrrd'))
+        sitk.WriteImage(sitk.GetImageFromArray(vol), mp.replace('-labels.tif', '-images.nrrd'))
         
         #remove the original volume
         os.remove(mp)
@@ -137,10 +149,9 @@ if __name__ == '__main__':
         #call the create_slices.py script to save results in the guay/2d folder
         setname = ip.split('/')[-3] #.../guay/3d/train/images/train-images.tif --> train
         slice_dir = os.path.join(save_dir, f'guay/2d/{setname}/')
-        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 2 -s 1'
+        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 0 1 2 -s 1'
         subprocess.call(command.split(' '))
-        
-    
+
     #now onto UroCell:
     #1. mito and lyso labelmaps, are separate, we need to combine them into a single mask volume
     #2. slice cross sections to make 2d versions of the train and test set
@@ -162,6 +173,13 @@ if __name__ == '__main__':
         #make sure the datatype is uint8
         labelmap = sitk.Cast(labelmap, sitk.sitkUInt8)
         
+        #for two of the volumes we need to crop out some
+        #regions of low-quality data
+        if lp.split('/')[-1] == 'fib1-0-0-0.nii.gz':
+            labelmap = labelmap[:, 12:]
+        elif lp.split('/')[-1] == 'fib1-1-0-3.nii.gz':
+            labelmap = labelmap[:, 54:]
+        
         #save the result
         sitk.WriteImage(labelmap, lp.replace('/lyso/', '/masks/'))
         
@@ -173,7 +191,16 @@ if __name__ == '__main__':
         assert(ip.replace('/images/', '/blank/') == mp.replace('/masks/', '/blank/')), "Image and mask volumes are not aligned!"
         
         #convert image from float to uint8
-        sitk.WriteImage(sitk.Cast(sitk.ReadImage(ip), sitk.sitkUInt8), ip)
+        image = sitk.Cast(sitk.ReadImage(ip), sitk.sitkUInt8)
+        
+        #for two of the volumes we need to crop out some
+        #regions of low-quality data
+        if ip.split('/')[-1] == 'fib1-0-0-0.nii.gz':
+            image = image[:, 12:]
+        elif ip.split('/')[-1] == 'fib1-1-0-3.nii.gz':
+            image = image[:, 54:]
+        
+        sitk.WriteImage(image, ip)
         
         #call the create_slices.py script to save results in the urocell/2d folder
         setname = ip.split('/')[-3] #.../urocell/3d/train/images/fib1-4-3-0.nii.gz --> train
@@ -182,7 +209,6 @@ if __name__ == '__main__':
         subprocess.call(command.split(' '))
         
 
-    
     #next we're going to handle CREMI
     #1. extract image volumes and labelmap volumes from .hdf files
     #2. binarize the synaptic cleft labelmaps and convert to uint8

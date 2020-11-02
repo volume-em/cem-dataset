@@ -14,7 +14,7 @@ logging: True
 
 #number of model checkpoints to save during training
 #if zero, the model's state is never saved
-num_save_checkpoints: 5
+num_save_checkpoints: 1
 
 #if a .pth file is given, model training will resume
 #from that checkpoint

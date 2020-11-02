@@ -14,14 +14,14 @@ logging: True
 
 #number of model checkpoints to save during training
 #if zero, the model's state is never saved
-num_save_checkpoints: 5
+num_save_checkpoints: 1
 
 #if a .pth file is given, model training will resume
 #from that checkpoint
 resume: ""
 
 #hyperparameters
-bsz: 32
+bsz: 16
 jobs: 8
 #choice of none, layer4, layer3, layer2, layer 1, or all
 finetune_layer: "none"

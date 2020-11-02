@@ -14,7 +14,7 @@ logging: True
 
 #number of model checkpoints to save during training
 #if zero, the model's state is never saved
-num_save_checkpoints: 5
+num_save_checkpoints: 1
 
 #if a .pth file is given, model training will resume
 #from that checkpoint
@@ -37,7 +37,7 @@ pretraining: "cellemnet_mocov2"
 
 #set the layers in the encoder to finetune choice of:
 #none, layer4, layer3, layer2, layer1, all
-finetune_layers: "none"
+finetune_layer: "none"
 
 lr: 0.003
 wd: 0.1
@@ -51,7 +51,7 @@ momentum: 0.9
 
 #iterations are used for Poly and OneCycle,
 #epochs are used for MultiStep
-iters: 8000
+iters: 5000
 
 #parameters specific for Poly lr_policy
 power: 0.9

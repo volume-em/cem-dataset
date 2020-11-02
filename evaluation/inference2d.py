@@ -253,7 +253,7 @@ if __name__ == '__main__':
             
         #print the overall mean
         mean_iou = image_ious.mean()
-        print(f'Mean IoU {mean_iou:.5f}')
+        print(f'Mean IoU {mean_iou}')
         
         #store the results if logging in mlflow
         if run_id is not None:
