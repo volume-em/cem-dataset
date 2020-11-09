@@ -7,9 +7,11 @@ from PIL import Image
 from torch.utils.data import Dataset
 from scipy.stats.mstats import pointbiserialr
 from skimage.transform import resize
+import torchvision.transforms as tf
 from torchvision.models import resnet50
 
 sys.path.append('../pretraining_moco/')
+from dataset import GaussianBlur, GaussNoise
 from builder import MoCo
 from resnet import resnet50 as moco_resnet50
 
@@ -18,7 +20,8 @@ IMAGENET_MOCO_WEIGHTS_URL = "https://dl.fbaipublicfiles.com/moco/moco_checkpoint
 
 __all__ = [
     'load_full_moco_cellemnet', 'load_moco_pretrained', 'DefaultDecoder', 'DataFolder', 
-    'rescale', 'CorrelationData', 'restride_resnet', 'correlated_filters', 'mean_topk_map', 'binary_iou'
+    'rescale', 'CorrelationData', 'restride_resnet', 'correlated_filters', 'mean_topk_map', 'binary_iou',
+    'transform_local_trajectory', 'calculate_mean_firing_rates', 'GaussianBlur', 'GaussNoise'
 ]
 
 #download the CellEMNet weights and load them
@@ -255,3 +258,85 @@ def binary_iou(pred, mask):
     intersect = np.logical_and(pred == 1, mask == 1).sum()
     union = np.logical_or(pred == 1, mask == 1).sum()
     return intersect / union
+
+def transform_local_trajectory(model, dataset, base_aug_list, additive_augs, aug_insert_loc):
+    #define a list for the trajectories
+    local_trajectories = []
+    
+    #determine the model device for later
+    device = next(model.parameters()).device
+    
+    for idx in range(len(dataset)):
+        #define list for the trajectory on a single image
+        trajectory = []
+        #loop over all levels of distortion included
+        #in the list of additive_augs
+        for aug in additive_augs:
+            #first create the new list of augmentations
+            augs = base_aug_list[:aug_insert_loc] + [aug] + base_aug_list[aug_insert_loc:]
+            
+            #overwrite the datasets transforms with the composed augmentations
+            dataset.tfs = tf.Compose(augs)
+            
+            #load the image
+            aug_image, _ = dataset[idx]
+            
+            #move the image to the model device
+            #and add the batch dimension
+            aug_image = aug_image.to(device).unsqueeze(0)
+            
+            #calculate the response
+            with torch.no_grad():
+                response = model(aug_image)
+                
+            #response is a vector of shape (2048,)
+            trajectory.append(response.detach().cpu().numpy().ravel())
+            
+        #add the trajectory over all the augmentation strengths
+        #as 1 complete local trajectory for an image
+        #stacked trajectory has shape (len(additive_augs), 2048)
+        local_trajectories.append(np.stack(trajectory, axis=0))
+        
+    #return the local trajectories for all images
+    #array of shape (len(dataset), len(additive_augs), 2048)
+    return np.stack(local_trajectories, axis=0)
+
+def calculate_mean_firing_rates(local_trajectories, firing_thresholds, trajectory_ref_index=0, near_max_percentile=0.9):
+    #start by calculating the near maximum responses
+    near_maximums = np.quantile(local_trajectories[:, trajectory_ref_index], near_max_percentile, axis=0)
+    
+    #loop over the tested augmentation strengths
+    #and compare firing rates relative to
+    #the undistorted reference image in the local_trajectory
+    mean_firing_rates = []
+    for i in range(local_trajectories.shape[1]):
+        #loop over all of the features (neurons) and measure
+        #their local firing rates (typically there are 2048)
+        local_firing_rates = []
+        for j in range(local_trajectories.shape[2]):
+            #check that the near maximum value is over the firing threshold
+            #if it's not then we ignore that neuron because it isn't selective
+            #for anything in the images that we tested
+            if near_maximums[j] <= firing_thresholds[j]:
+                continue
+
+            #get the indices of images that activate the given neuron
+            #near maximally (notice that first dim of local_trajectories is over images
+            #in the tested dataset)
+            indices = np.where(local_trajectories[:, trajectory_ref_index, j] >= near_maximums[j])[0]
+
+            #there should always be at least 1 index
+            #and the near maximum should be greater than 0
+            #just apply a sanity check to be sure
+            assert(len(indices) > 0), f"No images activate neuron {j} near-maximally!"
+            assert(near_maximums[j] > 0), f"Near maximum response for neuron {j} is 0!"
+
+            if len(indices) > 0 and near_maximums[j] > 0:
+                local_firing_rates.append((local_trajectories[indices][:, i, j] > firing_thresholds[j]).mean())
+    
+        mean_firing_rates.append(np.mean(local_firing_rates))
+        
+    #return the mean firing rates
+    #size is equal to the number of tested
+    #augmentation strengths
+    return np.array(mean_firing_rates)
