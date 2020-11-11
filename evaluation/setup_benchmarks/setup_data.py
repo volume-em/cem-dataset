@@ -1,4 +1,4 @@
-import os, subprocess, argparse
+import os, subprocess, argparse, shutil
 import SimpleITK as sitk
 import numpy as np
 from skimage.io import imread, imsave
@@ -19,11 +19,11 @@ if __name__ == '__main__':
     #parse the save directory
     args = parse_args()
     save_dir = args['save_dir']
-
+    """
     #run the download_benchmarks.sh script
     command = f'bash download_benchmarks.sh {save_dir}'
     subprocess.call(command.split(' '))
-
+    
     #first, we need to fix up the lucchi_pp dataset:
     #1. the image and mask filenames are not the same
     #2. mask pixels are 255, should be 1 instead
@@ -72,19 +72,20 @@ if __name__ == '__main__':
             
             #overwrite the mask file
             imsave(mp, mask, check_contrast=False)
-
+    
     #next, fix up the perez datasets:
     #1. the image and mask filenames are not the same, all have different prefixes
     #so we'll just remove the prefix (*_orig.999.png --> 999.png)
     
     #process all the images in one big group
     perez_fpaths = glob(os.path.join(save_dir, f'perez/*/*/*/*.png')) #e.g. perez/mito/train/images/*.png
+    print(f'Perez {len(perez_fpaths)}')
     for fp in perez_fpaths:
         orig_name = fp.split('/')[-1]
         prefix = orig_name.split('.')[0]
         new_name = orig_name.replace(f'{prefix}.', '') #remove the prefix and the trailing dot
         os.rename(fp, fp.replace(orig_name, new_name))
-    
+
     #next, the guay dataset:
     #1. image volumes are 16-bit signed pixels, convert them to 8-bit unsigned
     #2. mask volumes are 16-bit unsigned pixels, convert them to 8-bit unsigned
@@ -109,11 +110,6 @@ if __name__ == '__main__':
         #convert to uint8
         vol = vol.astype(np.uint8)
         
-        #resize to isotropy
-        iso_shape = tuple([s * t for s,t in zip(vol.shape, [5, 1, 1])])
-        vol = resize(vol, iso_shape, preserve_range=True)
-        vol = vol.astype(np.uint8)
-        
         #create a new volume
         sitk.WriteImage(sitk.GetImageFromArray(vol), ip.replace('.tif', '.nrrd'))
         
@@ -128,14 +124,8 @@ if __name__ == '__main__':
         #convert to uint8
         vol = sitk.Cast(vol, sitk.sitkUInt8)
         
-        #resize to isotropy
-        vol = sitk.GetArrayFromImage(vol)
-        iso_shape = tuple([s * t for s,t in zip(vol.shape, [5, 1, 1])])
-        vol = resize(vol, iso_shape, preserve_range=True, order=0) #nearest neighbor interp
-        vol = vol.astype(np.uint8)
-        
         #replace '-labels' with '-images' in the filename
-        sitk.WriteImage(sitk.GetImageFromArray(vol), mp.replace('-labels.tif', '-images.nrrd'))
+        sitk.WriteImage(vol, mp.replace('-labels.tif', '-images.nrrd'))
         
         #remove the original volume
         os.remove(mp)
@@ -149,7 +139,7 @@ if __name__ == '__main__':
         #call the create_slices.py script to save results in the guay/2d folder
         setname = ip.split('/')[-3] #.../guay/3d/train/images/train-images.tif --> train
         slice_dir = os.path.join(save_dir, f'guay/2d/{setname}/')
-        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 0 1 2 -s 1'
+        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 2 -s 1'
         subprocess.call(command.split(' '))
 
     #now onto UroCell:
@@ -174,7 +164,7 @@ if __name__ == '__main__':
         labelmap = sitk.Cast(labelmap, sitk.sitkUInt8)
         
         #for two of the volumes we need to crop out some
-        #regions of low-quality data
+        #regions with missing data
         if lp.split('/')[-1] == 'fib1-0-0-0.nii.gz':
             labelmap = labelmap[:, 12:]
         elif lp.split('/')[-1] == 'fib1-1-0-3.nii.gz':
@@ -194,7 +184,7 @@ if __name__ == '__main__':
         image = sitk.Cast(sitk.ReadImage(ip), sitk.sitkUInt8)
         
         #for two of the volumes we need to crop out some
-        #regions of low-quality data
+        #regions with missing data
         if ip.split('/')[-1] == 'fib1-0-0-0.nii.gz':
             image = image[:, 12:]
         elif ip.split('/')[-1] == 'fib1-1-0-3.nii.gz':
@@ -207,7 +197,7 @@ if __name__ == '__main__':
         slice_dir = os.path.join(save_dir, f'urocell/2d/{setname}/')
         command = f'python create_slices.py {ip} {mp} {slice_dir} -a 0 1 2 -s 1'
         subprocess.call(command.split(' '))
-        
+  
 
     #next we're going to handle CREMI
     #1. extract image volumes and labelmap volumes from .hdf files
@@ -252,7 +242,8 @@ if __name__ == '__main__':
         slice_dir = os.path.join(save_dir, f'cremi/2d/{setname}/')
         command = f'python create_slices.py {ip} {mp} {slice_dir} -a 2 -s 1'
         subprocess.call(command.split(' '))
-
+    """
+    
     #finally, let's make the All Mitochondria dataset
     #from perez mito, lucchi, kasthuri, urocell, and guay
     #1. create directories
@@ -262,15 +253,17 @@ if __name__ == '__main__':
     #UroCell with 3200 small images
     #3. A portion of patches from the Kasthuri dataset contain
     #nothing by background padding; we want to remove them
-    
     #make the directories
-    #no need for a test directory because we use the
-    #source benchmarks' test sets
     if not os.path.isdir(os.path.join(save_dir, 'all_mito')):
         os.mkdir(os.path.join(save_dir, 'all_mito'))
-        os.mkdir(os.path.join(save_dir, 'all_mito/train'))
-        os.mkdir(os.path.join(save_dir, 'all_mito/train/images'))
+        os.makedirs(os.path.join(save_dir, 'all_mito/train/images'))
         os.mkdir(os.path.join(save_dir, 'all_mito/train/masks'))
+        os.makedirs(os.path.join(save_dir, 'all_mito/test/2d/'))
+        os.mkdir(os.path.join(save_dir, 'all_mito/test/2d/images'))
+        os.mkdir(os.path.join(save_dir, 'all_mito/test/2d/masks'))
+        os.mkdir(os.path.join(save_dir, 'all_mito/test/3d/'))
+        os.mkdir(os.path.join(save_dir, 'all_mito/test/3d/images'))
+        os.mkdir(os.path.join(save_dir, 'all_mito/test/3d/masks'))
     
     #crop images in 256x256 patches from their sources directories
     benchmarks = ['perez/mito', 'lucchi_pp', 'kasthuri_pp', 'urocell/2d', 'guay/2d']
@@ -285,7 +278,7 @@ if __name__ == '__main__':
     #remove any blank images and their corresponding masks
     impaths = np.sort(glob(os.path.join(save_dir, f'all_mito/train/images/*')))
     mskpaths = np.sort(glob(os.path.join(save_dir, f'all_mito/train/masks/*')))
-    for ip, mp in zip(impaths, mskpaths):
+    for ip, mp in zip(impaths, mskpaths): 
         assert(ip.replace('/images/', '/blank/') == mp.replace('/masks/', '/blank/')), "Image and mask file paths are not aligned!"
         
         #load the image file
@@ -297,3 +290,58 @@ if __name__ == '__main__':
         if (image > 0).sum() < thr:
             os.remove(ip)
             os.remove(mp)
+            
+    #copy the test images from 2d datasets into the 2d test directory
+    benchmarks = ['perez/mito', 'lucchi_pp', 'kasthuri_pp']
+    benchmark_mito_labels = [1, 1, 1]
+    for l, bmk in zip(benchmark_mito_labels, benchmarks):
+        #glob all the images in the given test directory
+        impaths = glob(os.path.join(save_dir, f'{bmk}/test/images/*'))
+        for imp in impaths:
+            fname = imp.split('/')[-1]
+            bmk = 'perez_mito' if bmk == 'perez/mito' else bmk
+            dst = os.path.join(save_dir, f'all_mito/test/2d/images/{bmk}-{fname}')
+            shutil.copy(imp, dst)
+            
+            #do the same for the corresponding mask
+            imp = imp.replace('/images/', '/masks/')
+            dst = dst.replace('/images/', '/masks/')
+            shutil.copy(imp, dst)
+        
+    #now copy only the mito label from the 3d benchmarks
+    benchmarks = ['urocell/3d', 'guay/3d']
+    benchmark_mito_labels = [2, 2]
+    for l, bmk in zip(benchmark_mito_labels, benchmarks):
+        #glob all the images in the given test directory
+        impaths = glob(os.path.join(save_dir, f'{bmk}/test/images/*'))
+        for imp in impaths:
+            #copy the image volume directly
+            fname = imp.split('/')[-1]
+            bn_name = bmk.split('/')[0]
+            dst = os.path.join(save_dir, f'all_mito/test/3d/images/{bn_name}-{fname}')
+            shutil.copy(imp, dst)
+            
+            #open the mask volume with simpleitk
+            #and remove everything but the mito label
+            imp = imp.replace('/images/', '/masks/')
+            if bn_name == 'urocell':
+                vol = sitk.ReadImage(imp)
+                mask = vol <= 1
+                mito = vol == 2
+                #make the mito label 1 and the mask label 2
+                labelmap = mito + 2 * mask
+                mito_vol = sitk.Cast(labelmap, sitk.sitkUInt8)
+            else:
+                #keep labels 0, 1, 2 for guay (label 1 is the mask in which 
+                #the ground truth is defined)
+                #load the volumes
+                vol = sitk.ReadImage(imp)
+                cell = vol == 1
+                mito = vol == 2
+                #make the mito label 1 and the cell label 2
+                labelmap = mito + 2 * cell
+                mito_vol = sitk.Cast(labelmap, sitk.sitkUInt8)
+            
+            #save the result
+            dst = dst.replace('/images/', '/masks/')
+            sitk.WriteImage(mito_vol, dst)
