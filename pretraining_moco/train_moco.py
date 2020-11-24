@@ -10,6 +10,7 @@ Modifications:
 3. Added GaussNoise and Rotations to augmentations
 4. Modified content of saved checkpoints to include the
    mean and std pixel values used for training and the mlflow run id
+   
 """
 
 import argparse
@@ -39,7 +40,6 @@ from dataset import EMData, GaussianBlur, GaussNoise
 from resnet import resnet50
 
 #my imports 
-from torch.utils.tensorboard import SummaryWriter
 import mlflow
 
 model_names = sorted(name for name in models.__dict__
@@ -47,7 +47,7 @@ model_names = sorted(name for name in models.__dict__
     and callable(models.__dict__[name]))
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+    parser = argparse.ArgumentParser(description='PyTorch MoCo Training')
     parser.add_argument('config', help='Path to .yaml training config file')
     
     #return the arguments converted to a dictionary
@@ -56,7 +56,7 @@ def parse_args():
 
 def main():
     #parse arguments
-    args = parser.parse_args()
+    args = parse_args()
     
     #load the config file
     with open(args['config'], 'r') as f:
@@ -89,7 +89,7 @@ def main():
 
 def main_worker(gpu, ngpus_per_node, config):
     config['gpu'] = gpu
-
+    
     # suppress printing if not master process
     if config['multiprocessing_distributed'] and config['gpu'] != 0:
         def print_pass(*args):
@@ -152,7 +152,10 @@ def main_worker(gpu, ngpus_per_node, config):
     optimizer = torch.optim.SGD(model.parameters(), config['lr'],
                                 momentum=config['momentum'],
                                 weight_decay=config['weight_decay'])
-
+    
+    #set the start_epoch, overwritten if resuming
+    config['start_epoch'] = 0
+    
     # optionally resume from a checkpoint
     if config['resume']:
         if os.path.isfile(config['resume']):
@@ -222,7 +225,7 @@ def main_worker(gpu, ngpus_per_node, config):
         #we know where to save our files, if experiment name
         #already exists, we'll use it, otherwise we create a
         #new experiment
-        mlflow.set_experiment(self.config['experiment_name'])
+        mlflow.set_experiment(config['experiment_name'])
         
         #add the config file as an artifact, to make it
         #easy to reproduce every run
