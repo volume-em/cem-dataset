@@ -2,14 +2,14 @@
 Description:
 ------------
 
-It is assumed that this script will be run after the cross_sections.py script. Errors
-may arise if this is not the case.
+It is assumed that this script will be run after the cross_section3d.py script. Errors
+will arise if this is not the case.
 
 This script takes a directory containing 2d tiff images and crops those large images
 into squares of a given dimension (default 224). In addition to creating the patch,
 it also calculates and saves a difference hash for that patch. Doing both in a single
 step significantly cuts down on I/O time. Both the patch and the hash are saved
-in the same directory. All patches are .tiff and all hashes are .npy
+in the same directory. All patches are .tiff and all hashes are .npy.
 
 Example usage:
 --------------
@@ -35,7 +35,7 @@ def calculate_hash(image, crop_size, hash_size=8):
     #Creates the dhash for the resized image
     #this guarantees that smaller images are not more likely
     #to be recognized as unique
-    return imagehash.dhash(Image.fromarray(image).resize(crop_size, crop_size), hash_size=hash_size).hash
+    return imagehash.dhash(Image.fromarray(image).resize((crop_size, crop_size), resample=2), hash_size=hash_size).hash
 
 def patch_and_hash(impath, patchdir, crop_size=224, hash_size=8):
     #load the image

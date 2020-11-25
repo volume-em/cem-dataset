@@ -2,23 +2,29 @@
 Description:
 ------------
 
-It is assumed that this script will be run after the cross_section.py and 
+It is assumed that this script will be run after the cross_section3d.py and 
 crop_patches.py scripts. Errors are certain to occur if that is not the case.
 
-This script takes a directory containing image patches and their corresponding
-hashes and performs deduplication of patches from within the same dataset. The resulting
-array of deduplicated patches is stored is a list of filepaths in the given savedir with
-the name deduplicated_fpaths.npz
+This script takes a dask array of 2d image filepaths and a directory of 3d image 
+volumes. It is assumed that at least some of the 2d images are cross sections from
+the 3d volumes in the given directory. The cross_section3d.py creates a "trail" in
+the 2d image filenames that make it easy to find their associated 3d volume.
+
+Although it may seem circuitous to go from 3d volumes to 2d images back to 3d
+volumes, this method allows us to use the simple and fast 2d filtering algorithms
+to effectively filter out uninformative regions of a 3d volume. Reconstructions
+are only performed in regions of the volume that contain a few "informative" 2d
+patches.
 
 Example usage:
 --------------
 
-python deduplicate.py {patchdir} {savedir} --min_distance 12 --processes 32
+python reconstruct3d.py {impaths_file} {volume_dir} {savedir} -nz 224 -p 4 --cross-plane
 
 For help with arguments:
 ------------------------
 
-python deduplicate.py --help
+python reconstruct3d.py --help
 """
 
 import os, argparse, math
@@ -36,12 +42,13 @@ if __name__ == "__main__":
     parser.add_argument('filtered_impaths_file', type=str, metavar='filtered_impaths_file', help='Dask array file with filtered impaths')
     parser.add_argument('volume_dir', type=str, metavar='volume_dir', help='Directory containing source EM volumes')
     parser.add_argument('savedir', type=str, metavar='savedir', 
-                        help='Path to save array containing the paths of exemplar images')
+                        help='Path to save 3d reconstructions')
     parser.add_argument('-nz', dest='nz', type=int, metavar='nz', default=224,
                         help='Number of z slices in reconstruction')
     parser.add_argument('-p', '--processes', dest='processes', type=int, metavar='processes', default=32,
                         help='Number of processes to run, more processes run faster but consume memory')
-    
+    parser.add_argument('--cross-plane', dest='cross_plane', action='store_true',
+                        help='Whether to create 3d volumes sliced orthogonal to imaging plane, useful when nz < image_shape')
 
     #parse the arguments
     args = parser.parse_args()
@@ -50,6 +57,7 @@ if __name__ == "__main__":
     savedir = args.savedir
     numberz = args.nz
     processes = args.processes
+    cross_plane = args.cross_plane
     
     #to avoid running this long script only to get a nasty error
     #let's make sure that the savedir exists
@@ -107,10 +115,12 @@ if __name__ == "__main__":
     del datasets
     
     #add the last index for impaths such that we have complete intervals
+    #len(indices) == len(unq_datasets) + 1
     indices = np.append(indices, len(filtered_impaths))
     
     #get the intersect of unq_datasets and volume_names
     intersect_datasets, unq_indices, _ = np.intersect1d(unq_datasets, volume_names, return_indices=True)
+    unq_indices = unq_indices[unq_indices >= 274]
     unq_datasets = unq_datasets[unq_indices]
     start_indices = indices[:-1][unq_indices]
     end_indices = indices[1:][unq_indices]
@@ -193,6 +203,9 @@ if __name__ == "__main__":
         #convert to numpy
         volume = sitk.GetArrayFromImage(volume)
         
+        if len(volume.shape) == 4:
+            volume = volume[:, :, :, 0]
+        
         #for filenames, get the digit padding
         zpad = math.ceil(math.log(volume.shape[0], 10))
         ypad = math.ceil(math.log(volume.shape[1], 10))
@@ -205,18 +218,32 @@ if __name__ == "__main__":
             z1, y1, x1, z2, y2, x2 = box
             zstr, ystr, xstr = str(z1).zfill(zpad), str(y1).zfill(ypad), str(x1).zfill(xpad)
             
+            #extract the subvolume
+            subvolume = volume[z1:z2, y1:y2, x1:x2]
+                
+            #if we're allowing cross plane, then we transpose
+            #the dimensions such the
+            if cross_plane:
+                #order the dimensions from smallest to largest
+                dim_order = np.argsort(subvolume.shape)
+                dim_names = {0: 'z', 1: 'y', 2: 'x'}
+                dim_str = ''.join([dim_names[d] for d in dim_order])
+                subvolume = np.transpose(subvolume, tuple(dim_order))
+            else:
+                dim_str = 'zyx'
+            
             #create slightly different file names if the dataset is
             #isotropic or not
             if is_isotropic:
-                fname = f'{dataset_name}-LOC-3d-ISO-{zstr}_{ystr}_{xstr}.npy'
+                fname = f'{dataset_name}-LOC-3d-ISO-{zstr}_{ystr}_{xstr}_{dim_str}.npy'
             else:
-                fname = f'{dataset_name}-LOC-3d-ANISO-{zstr}_{ystr}_{xstr}.npy'
+                fname = f'{dataset_name}-LOC-3d-ANISO-{zstr}_{ystr}_{xstr}_{dim_str}.npy'
                 
-            subvolume = volume[z1:z2, y1:y2, x1:x2]
+                
             #make sure that all dimensions are at least greater than
             #numberz // 2
             if all(s >= numberz // 2 for s in subvolume.shape):
-                np.save(os.path.join(savedir, fname), volume[z1:z2, y1:y2, x1:x2])
+                np.save(os.path.join(savedir, fname), subvolume)
         
 
     #first handle images from the same planes
@@ -326,16 +353,22 @@ if __name__ == "__main__":
                 #one of the axis_slice_indices
                 #the simplest way to do this is with a histogram
                 counts, _ = np.histogram(column_slice_indices, bins=bins)
+                #print(counts)
+                
+                #define the minimum number of informative
+                #slices that must exist within an interval for
+                #it to be considered informative
+                min_count = numberz // 10
 
                 #size is (n_good_intervals, 6)
                 #(zstart, ystart, xstart, zend, yend, xend)
-                column_boxes = np.zeros((len(intervals[counts > 0]), 6))
+                column_boxes = np.zeros((len(intervals[counts > min_count]), 6))
                 
                 #size is (n_good_intervals, 6)
                 #(zstart, ystart, xstart, zend, yend, xend)
-                column_boxes = np.zeros((len(intervals[counts > 0]), 6))
-                column_boxes[:, axis] = intervals[counts > 0]
-                column_boxes[:, axis + 3] = intervals[counts > 0] + numberz
+                column_boxes = np.zeros((len(intervals[counts > min_count]), 6))
+                column_boxes[:, axis] = intervals[counts > min_count]
+                column_boxes[:, axis + 3] = intervals[counts > min_count] + numberz
                 
                 #of all the axes remove the one we're currently analyzing
                 #e.g. testing axis 1: axes == [0, 1, 2] --> axes == [0, 2] 
@@ -343,13 +376,13 @@ if __name__ == "__main__":
                 y_axis, x_axis = np.delete(np.arange(3), axis)
                 
                 #this assumes that the cropped image is 224x224
-                #TODO: can this be adaptive?
+                #TODO: can this be adaptive without loading the image?
                 column_boxes[:, y_axis] = y
                 column_boxes[:, y_axis + 3] = y + 224
                 column_boxes[:, x_axis] = x
                 column_boxes[:, x_axis + 3] = x + 224
                 
-                scores.extend(counts[counts > 0])
+                scores.extend(counts[counts > min_count])
                 boxes.extend(column_boxes)
                 
         #convert boxes to an array
@@ -371,12 +404,7 @@ if __name__ == "__main__":
 
     #get the sets of all boxes for reconstructing 3d data from
     #all the datasets
-    print(len(groups_impaths))
     with Pool(processes) as pool:
         result = list(pool.map(overlap_suppression, groups_impaths))
-    #print(len(groups_impaths))
-    #for ix, impath_group in enumerate(groups_impaths[23:]):
-    #    print(ix, impath_group[0])
-    #    overlap_suppression(impath_group)
 
     print('Finished')

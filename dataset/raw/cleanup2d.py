@@ -4,7 +4,14 @@ Description:
 
 This script accepts a directory with 2d images and processes them
 to make sure they all have unsigned 8-bit pixels. The resultant images 
-are saved in the given directory.
+are saved in the given save directory.
+
+Importantly, the saved image files are given a slightly different filename:
+We add '-LOC-2d' to the end of the filename. Once images from 2d and 3d datasets
+start getting mixed together, it can be difficult to keep track of the
+provenance of each patch. Everything that appears before '-LOC-2d' is the
+name of the original dataset and we, of course, know that that dataset is
+a 2d EM image.
 
 Example usage:
 --------------
@@ -71,7 +78,7 @@ if __name__ == "__main__":
             is_float = True
             
         if dtype == 'uint8': #nothing to do
-            continue
+            pass
         else:
             #get the number of bits per pixel
             bits = int(dtype[-2]) #16, 32, or 64
@@ -118,3 +125,5 @@ if __name__ == "__main__":
     #results in a much faster runtime
     with Pool(processes) as pool:
         pool.map(process_image, fpaths)
+        
+    print('Finished')

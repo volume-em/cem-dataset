@@ -2,24 +2,26 @@
 Description:
 ------------
 
-Fits a ResNet34 model to images that have manually been labeled as "good" or "bad" quality. It's assumed that 
-images have been manually labeled using the corrector.py utilities running in a Jupyter notebook.
+Fits a ResNet34 model to images that have manually been labeled as "informative" or "uninformative". It's assumed that 
+images have been manually labeled using the corrector.py utilities running in a Jupyter notebook (see notebooks/labeling.ipynb).
 
 The results of this script are the roc curve plot on a randomly chosen validation set of images, the
-model state dict as a .pth file and the model's predictions on all the images.
+model state dict as a .pth file and the model's predictions on all the remaining unlabeled images.
 
 Example usage:
 --------------
 
-python filter_rf.py {impaths_file} {labels_fpath} {savedir}
+python classify_nn.py {impaths_file} {savedir} --labels {label_file} --weights {weights_file}
 
 For help with arguments:
 ------------------------
 
-python filter_rf.py --help
+python classify_nn.py --help
 """
 
-import os, sys, cv2
+DEFAULT_WEIGHTS = "https://www.dropbox.com/s/2libiwgx0qdgxqv/patch_quality_classifier_nn.pth?raw=1"
+
+import os, sys, cv2, argparse
 import numpy as np
 import dask.array as da
 from sklearn.metrics import confusion_matrix, accuracy_score, roc_curve, roc_auc_score
@@ -32,11 +34,7 @@ from torchvision.models import resnet34
 from torch.optim import Adam
 from torch.utils.data import DataLoader, Dataset
 
-from albumentations import (
-    Compose, PadIfNeeded, Normalize, HorizontalFlip, VerticalFlip, RandomBrightnessContrast, 
-    CropNonEmptyMaskIfExists, GaussNoise, RandomBrightnessContrast, RandomResizedCrop, Rotate, RandomCrop,
-    GaussianBlur, CenterCrop, RandomGamma, ElasticTransform
-)
+from albumentations import Compose, Normalize, Resize
 from albumentations.pytorch import ToTensorV2
 from tqdm import tqdm
 
@@ -48,17 +46,20 @@ if __name__ == "__main__":
         description='Classifies a set of images by fitting a random forest to an array of descriptive features'
     )
     parser.add_argument('impaths_file', type=str, metavar='impaths_file', 
-                        help='Path to .npz dask array file containing patch filepaths (for example output of deduplicate.py)')
-    parser.add_argument('labels_fpath', type=str, metavar='labels_fpath', 
-                        help='Path to array file containing image labels (good or bad)')
+                        help='Path to .npz dask array file containing patch filepaths (for example deduplicated_fpaths.npz)')
     parser.add_argument('savedir', type=str, metavar='savedir', 
-                        help='Directory in which to save model, evaluation plots, and predictions')
+                        help='Directory in which to save predictions')
+    parser.add_argument('--labels', type=str, metavar='labels',
+                        help='Optional, path to array file containing image labels (informative or uninformative)')
+    parser.add_argument('--weights', type=str, metavar='weights',
+                        help='Optional, path to nn weights file. The default is to download weights used in the paper.')
     
     #parse the arguments
     args = parser.parse_args()
     impaths_file = args.impaths_file
-    labels_fpath = args.labels_fpath
     savedir = args.savedir
+    gt_labels = args.labels
+    weights = args.weights
     
     #make sure the savedir exists
     if not os.path.isdir(savedir):
@@ -67,9 +68,12 @@ if __name__ == "__main__":
     #load the dask array
     impaths = da.from_npy_stack(impaths_file)
 
-    #load the labels array
-    gt_labels = np.load(labels_fpath)
-
+    #load the labels array (if there is one)
+    if gt_labels is not None:
+        gt_labels = np.load(gt_labels)
+    else:
+        gt_labels = np.array(len(impaths) * ['none'])
+        
     #sanity check that the number of labels and impaths are the same
     assert(len(impaths) == len(gt_labels)), "Number of impaths and labels are different!"
 
@@ -78,49 +82,18 @@ if __name__ == "__main__":
     #in that case the labels are text with the possible options of "good", "bad", and "none"
     #those with the label "none" are considered the unlabeled set and we make predictions
     #about their labels using the random forest that we train on the labeled images
-    good_indices = np.where(gt_labels == 'good')[0]
-    bad_indices = np.where(gt_labels == 'bad')[0]
+    good_indices = np.where(gt_labels == 'informative')[0]
+    bad_indices = np.where(gt_labels == 'uninformative')[0]
     labeled_indices = np.concatenate([good_indices, bad_indices], axis=0)
-    unlabeled_indices = np.setdiff1d(range(len(features)), labeled_indices)
+    unlabeled_indices = np.setdiff1d(range(len(impaths)), labeled_indices)
 
-    #setting the random seed ensures that we're always comparing results against the same
-    #validation dataset (otherwise hyperparameter tuning results would be indecipherable)
-    #resetting the seed to something random ensures that there aren't issues with the
-    #random augmentations
-    np.random.seed(1227)
-    trn_indices, val_indices = train_test_split(labeled_indices, test_size=0.15)
-    np.random.seed(None)
-
-    #convert the labels from text to integers (0 = "bad", 1= "good")
-    labels = np.zeros((len(impaths), ))
-    labels[good_indices] = 1
-
-    #separate train, validation, and test sets
-    trn_impaths = impaths[trn_indices]
-    trn_labels = labels[trn_indices]
-
-    val_impaths = impaths[val_indices]
-    val_labels = labels[val_indices]
-
-    tst_impaths = impaths[unlabeled_indices]
-    tst_labels = labels[unlabeled_indices] #all zeros by default
-
-
-    #augmentations are carefully chosen such that the amount of distortion would not
-    #transform an otherwise "good" patch into a "bad" patch (for example, by making it low contrast)
+    #create the test set
+    tst_impaths = impaths[unlabeled_indices].compute()
+    
+    #set up evaluation transforms (assumes imagenet pretrained as default
+    #in train_nn.py)
     imsize = 224
     normalize = Normalize() #default is imagenet normalization
-    tfs = Compose([
-        Resize(imsize, imsize),
-        RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
-        GaussNoise(var_limit=(40, 100.0), p=0.5),
-        GaussianBlur(blur_limit=5, p=0.5),
-        HorizontalFlip(),
-        VerticalFlip(),
-        normalize,
-        ToTensorV2()
-    ])
-
     eval_tfs = Compose([
         Resize(imsize, imsize),
         normalize,
@@ -128,11 +101,11 @@ if __name__ == "__main__":
     ])
 
     #make a basic dataset class for loading and augmenting images
+    #WITHOUT any labels
     class SimpleDataset(Dataset):
-        def __init__(self, imfiles, labels, tfs=None):
+        def __init__(self, imfiles, tfs=None):
             super(SimpleDataset, self).__init__()
             self.imfiles = imfiles
-            self.labels = labels
             self.tfs = tfs
             
         def __len__(self):
@@ -143,185 +116,67 @@ if __name__ == "__main__":
             image = cv2.imread(self.imfiles[idx], 0)
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
             
-            #load the label
-            label = self.labels[idx]
-            
             #apply transforms
             if self.tfs is not None:
                 image = self.tfs(image=image)['image']
                 
-            return {'image': image, 'label': label}
+            return {'image': image}
         
     #create datasets for the train, validation, and test sets
-    trn_data = SimpleDataset(trn_impaths, trn_labels, tfs)
-    val_data = SimpleDataset(val_impaths, val_labels, eval_tfs)
-    tst_data = SimpleDataset(tst_impaths, tst_labels, eval_tfs)
+    tst_data = SimpleDataset(tst_impaths, eval_tfs)
 
-    #create dataloaders
-    bsz = 64
-    train = DataLoader(trn_data, batch_size=bsz, shuffle=True, pin_memory=True, drop_last=True, num_workers=4)
-    valid = DataLoader(val_data, batch_size=bsz, shuffle=False, pin_memory=True, num_workers=4)
-    test = DataLoader(tst_data, batch_size=bsz * 2, shuffle=False, pin_memory=True, num_workers=4)
+    #create the test dataload
+    test = DataLoader(tst_data, batch_size=128, shuffle=False, pin_memory=True, num_workers=4)
 
-    #create the model initialized with ImageNet weights
-    model = resnet34(pretrained=True)
+    #create the resnet34 model
+    model = resnet34()
 
-    #freeze all parameters
-    for param in model.parameters():
-        param.requires_grad = False
-        
     #modify the output layer to predict 1 class only
     model.fc = nn.Linear(in_features=512, out_features=1)
-
+    
+    #load the weights from file or from online
+    if weights is not None:
+        state_dict = torch.load(weights)
+    else:
+        state_dict = torch.hub.load_state_dict_from_url(DEFAULT_WEIGHTS)
+        
+    #load in the weights (strictly)
+    msg = model.load_state_dict(state_dict)
+    
     #move the model to a cuda device
     model = model.cuda()
 
-    #unfreeze all parameters below the given finetune layer
-    finetune_layer = 'layer4'
-    backbone_groups = [mod[1] for mod in model.named_children()]
-    if finetune_layer != 'none':
-        layer_index = {'all': 0, 'layer1': 4, 'layer2': 5, 'layer3': 6, 'layer4': 7}
-        start_layer = layer_index[finetune_layer]
-
-        #always finetune from the start layer to the last layer in the resnet
-        for group in backbone_groups[start_layer:]:
-            for param in group.parameters():
-                param.requires_grad = True
-                    
-
-    #print the number of trainable parameters
-    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-    params = sum([np.prod(p.size()) for p in model_parameters])
-    print(f'Using model with {params} trainable parameters!')
-
-    #define loss and optiimizer
-    criterion = nn.BCEWithLogitsLoss()
-    optimizer = Adam(model.parameters(), lr=1e-3)
-
     #faster training
     cudnn.benchmark = True
-
-    #basic accuracy calculation
-    def accuracy(output, labels):
-        #squeeze both
-        output = output.squeeze()
-        labels = labels.squeeze() > 0
-        
-        #sigmoid output
-        output = nn.Sigmoid()(output) > 0.5
-        
-        #measure correct
-        correct = torch.sum(output == labels).float()
-        return (correct / len(labels)).item()
-
-
-    #runs model training and validation loops for 20 epochs
-    for epoch in range(20):
-        rl = 0
-        ra = 0
-        for data in tqdm(train):
-            #load data onto gpu
-            images = data['image'].cuda(non_blocking=True)
-            labels = data['label'].cuda(non_blocking=True)
-
-            #zero grad
-            optimizer.zero_grad()
-
-            #forward
-            output = model.train()(images)
-            loss = criterion(output, labels.unsqueeze(1))
-
-            #backward
-            loss.backward()
-
-            #step
-            optimizer.step()
-
-            rl += loss.item()
-            ra += accuracy(output, labels)
-
-        print(f'Epoch {epoch + 1}, Loss {rl / len(train)}, Accuracy {ra / len(train)}')
-        
-        rl = 0
-        ra = 0
-        for data in valid:
-            #load data onto gpu
-            images = data['image'].cuda(non_blocking=True)
-            labels = data['label'].cuda(non_blocking=True)
-            
-            #forward
-            output = model.eval()(images)
-            loss = criterion(output, labels.unsqueeze(1))
-            rl += loss.item()
-            ra += accuracy(output, labels)
-
-        print(f'Val Loss {rl / len(valid)}, Accuracy {ra / len(valid)}')
-
-
-    #save the model
-    torch.save(model.state_dict(), os.path.join(savedir, 'patch_quality_classifier_nn.pth'))
-    print(f'Model finished training, weights saved.')
-
-    #run more extensive validation and print results
-    print(f'Evaluating model predictions...')
-    val_predictions = []
-    for data in tqdm(valid):
-        #load data onto gpu
-        images = data['image'].cuda(non_blocking=True)
-
-        #forward
-        output = model.eval()(images)
-        pred = nn.Sigmoid()(output)
-        val_predictions.append(pred.detach().cpu().numpy())
-
-    val_predictions = np.concatenate(val_predictions, axis=0)
-
-    tn, fp, fn, tp = confusion_matrix(val_labels, val_predictions > 0.5).ravel()
-    acc = accuracy_score(val_labels, val_predictions > 0.5)
-
-    print(f'Total validation images: {len(val_data)}')
-    print(f'True Positives: {tp}')
-    print(f'True Negatives: {tn}')
-    print(f'False Positives: {fp}')
-    print(f'False Negatives: {fn}')
-    print(f'Accuracy: {acc}')
-
-    #plot roc curve and save it
-    fpr_nn, tpr_nn, _ = roc_curve(val_labels, val_predictions)
-    plt.plot(fpr_nn, tpr_nn, label=f'ConvNet (AUC = {roc_auc_score(val_labels, val_predictions):.3f})')
-    plt.xlabel('False positive rate', labelpad=16, fontsize=18, fontweight="bold")
-    plt.xticks(fontsize=14)
-    plt.ylabel('True positive rate', labelpad=16, fontsize=18, fontweight="bold")
-    plt.yticks(fontsize=14)
-    plt.title('NN Patch Quality Classifier ROC Curve', fontdict={'fontsize': 22, 'fontweight': "bold"}, pad=24)
-    plt.tight_layout()
-    plt.legend(loc='best', fontsize=18)
-    plt.savefig(os.path.join(savedir, "nn_roc_curve.png"))
-
+    
     #lastly run inference on the entire set of unlabeled images
     print(f'Running inference on test set...')
     tst_predictions = []
     for data in tqdm(test):
-        #load data onto gpu
-        images = data['image'].cuda(non_blocking=True)
+        with torch.no_grad():
+            #load data onto gpu
+            #then forward pass
+            images = data['image'].cuda(non_blocking=True)
 
-        #forward
-        output = model.eval()(images)
-        pred = nn.Sigmoid()(output)
+            output = model.eval()(images)
+            pred = nn.Sigmoid()(output)
+        
         tst_predictions.append(pred.detach().cpu().numpy())
 
     tst_predictions = np.concatenate(tst_predictions, axis=0)
-        
 
     #create an array of labels that are all zeros and fill in the values from a combination
     #of the ground truth labels from training and validation sets and the predicted
     #labels for unlabeled indices
-    predicted_labels = np.zeros(len(impaths), dtype=np.uint8)
-    predicted_labels[trn_indices] = trn_labels.astype(np.uint8)
-    predicted_labels[val_indices] = val_labels.astype(np.uint8)
+    #convert gt_labels from strings to integers
+    predicted_labels = (gt_labels == 'informative').astype(np.uint8)
     predicted_labels[unlabeled_indices] = (tst_predictions[:, 0] > 0.5).astype(np.uint8)
 
-    print(f'Saving results...')
+    print(f'Saving predictions...')
     np.save(os.path.join(savedir, "nn_predictions.npy"), predicted_labels)
+    
+    print(f'Saving filepaths...')
+    filtered_fpaths = da.from_array(impaths[predicted_labels == 1].compute())
+    da.to_npy_stack(os.path.join(savedir, 'nn_filtered_fpaths.npz'), filtered_fpaths)
 
     print('Finished.')

@@ -2,13 +2,17 @@
 Description:
 ------------
 
-It is assumed that this script will be run after the cross_section.py and 
+It is assumed that this script will be run after the cross_section3d.py and 
 crop_patches.py scripts. Errors are certain to occur if that is not the case.
 
 This script takes a directory containing image patches and their corresponding
 hashes and performs deduplication of patches from within the same dataset. The resulting
 array of deduplicated patches is stored is a list of filepaths in the given savedir with
-the name deduplicated_fpaths.npz
+the name deduplicated_fpaths.npz.
+
+Because we save the results of deduplication for each dataset separately, this script
+easily handles the addition of new images to the patchdir. Datasets that have already
+been deduplicated will be skipped.
 
 Example usage:
 --------------
@@ -60,15 +64,28 @@ if __name__ == "__main__":
     #has slightly slower I/O but saves a considerable amount
     #of memory. In case this deduplication script has been run before, we'll
     #check to see if the dask array already exists
-    da_impaths_path = os.path.join(patchdir, 'raw_fpaths.npz')
-    if not os.path.isfile(da_impaths_path):
-        impaths = np.sort(glob(os.path.join(patchdir, '*.tiff')))
-        impaths = da.from_array(impaths)
-        da.to_npy_stack(da_impaths_path, impaths)
-        del impaths
+    #in case new images were added in the intervening period, we're
+    #going to check that the impaths file is the most recently
+    #made update to the directory
+    #da_impaths_path = os.path.join(patchdir, 'raw_fpaths.npz')
+    #gather_impaths = False
+    #if os.path.isfile(da_impaths_path):
+    #    impaths_update_time = os.stat(da_impaths_path).st_mtime
+    #    patchdir_update_time = os.stat(patchdir).st_mtime
+    #    gather_impaths = impaths_update_time != patchdir_update_time
+    #else:
+    #    gather_impaths = True
+        
+    #make the list of impaths, if it doesn't exist or isn't
+    #recent enough
+    #if gather_impaths:
+    impaths = np.sort(glob(os.path.join(patchdir, '*.tiff')))
+    #impaths = da.from_array(impaths)
+    #da.to_npy_stack(da_impaths_path, impaths)
+    #del impaths
 
     #load the dask array of impaths
-    impaths = da.from_npy_stack(da_impaths_path)
+    #impaths = da.from_npy_stack(da_impaths_path)
     print(f'Found {len(impaths)} images to deduplicate')
 
     def get_dataset_name(imf):
@@ -79,13 +96,14 @@ if __name__ == "__main__":
 
     #extract the set of unique dataset names from all the impaths
     with Pool(processes) as pool:
-        datasets = np.array(pool.map(get_dataset_name, impaths.compute()))
+        datasets = np.sort(pool.map(get_dataset_name, impaths))
 
     #because we sorted the impaths, we know that all images from the
     #same dataset will be grouped together. therefore, we only need
     #to know the index of the first instance of a unique dataset name
     #in order to get the indices of all the patches from that dataset
     unq_datasets, indices = np.unique(datasets, return_index=True)
+    print(f'Deduplicating {len(unq_datasets)} unique datasets')
     
     #we can delete the datasets array now
     del datasets
@@ -97,7 +115,7 @@ if __name__ == "__main__":
     groups_impaths = []
     for si, ei in zip(indices[:-1], indices[1:]):
         #have to call .compute() for a dask array
-        groups_impaths.append(impaths[si:ei].compute())
+        groups_impaths.append(impaths[si:ei])
         
     #now we can delete the impaths dask array
     del impaths
@@ -112,10 +130,10 @@ if __name__ == "__main__":
         #the patches that belong to that dataset
         dataset_name, impaths = args
         
-        #check if we already processes this dataset name, if so
-        #then we can skip it
+        #check if we already processed this dataset name, if so
+        #then we can skip it, this makes it very easy to add new datasets
         exemplar_fpath = os.path.join(savedir, f'{dataset_name}_exemplars.npy')
-        if os.path.isfile(exemplar_path):
+        if os.path.isfile(exemplar_fpath):
             return None
         
         #randomly permute the impaths such that we'll have random ordering
@@ -163,12 +181,12 @@ if __name__ == "__main__":
 
     #now that all the patches from individual datasets are deduplicated,
     #we'll combine all the separate .npy arrays into a single dask array and save it
-    exemplar_fpaths = glob(os.path.join(save_dir, '_exemplars.npy'))
+    exemplar_fpaths = glob(os.path.join(savedir, '*_exemplars.npy'))
     deduplicated_fpaths = np.concatenate([np.load(fp) for fp in exemplar_fpaths])
     
     #convert to dask and save
     deduplicated_fpaths = da.from_array(deduplicated_fpaths)
-    da.to_npy_stack(os.path.join(save_dir, 'deduplicated_fpaths.npz'), deduplicated_fpaths)
+    da.to_npy_stack(os.path.join(savedir, 'deduplicated_fpaths.npz'), deduplicated_fpaths)
     
     #print the total number of deduplicated patches
     print(f'{len(deduplicated_fpaths)} patches remaining after deduplication.')

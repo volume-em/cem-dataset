@@ -2,9 +2,18 @@
 Description:
 ------------
 
-This script accepts a directory with image volume files
-and slices cross sections from the given axes (xy, xz, yz).
-The resultant cross sections are saved in the given directory
+This script accepts a directory with image volume files and slices cross sections 
+from the given axes (xy, xz, yz). The resultant cross sections are saved in 
+the given save directory.
+
+Importantly, the saved image files are given a slightly different filename:
+We add '-LOC-{axis}_{slice_index}' to the end of the filename, where axis denotes the
+cross-sectioning plane (0->xy, 1->xz, 2->yz) and the slice index is the position of
+the cross-section on that axis. Once images from 2d and 3d datasets
+start getting mixed together, it can be difficult to keep track of the
+provenance of each patch. Everything that appears before '-LOC-' is the
+name of the original dataset, the axis and slice index allow us to lookup the
+exact location of the cross-section in the volume.
 
 Example usage:
 --------------
@@ -98,7 +107,11 @@ if __name__ == "__main__":
         
         #establish a filename prefix from the imvolume
         #extract the experiment name from the filepath
-        fext = fp.split('.')[-1]
+        #add a special case for .nii.gz files
+        if fp[-5:] == 'nii.gz':
+            fext = 'nii.gz'
+        else:
+            fext = fp.split('.')[-1]
         exp_name = fp.split('/')[-1].split(f'.{fext}')[0]
         
         #loop over the axes and save slices
@@ -141,3 +154,5 @@ if __name__ == "__main__":
     #results in a much faster runtime
     with Pool(processes) as pool:
         pool.map(create_slices, fpaths)
+        
+    print('Finished')
