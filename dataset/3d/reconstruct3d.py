@@ -120,8 +120,6 @@ if __name__ == "__main__":
     
     #get the intersect of unq_datasets and volume_names
     intersect_datasets, unq_indices, _ = np.intersect1d(unq_datasets, volume_names, return_indices=True)
-    unq_indices = unq_indices[unq_indices >= 274]
-    unq_datasets = unq_datasets[unq_indices]
     start_indices = indices[:-1][unq_indices]
     end_indices = indices[1:][unq_indices]
 
