@@ -110,3 +110,13 @@ augmentations:
     contrast_limit: 0.3
   - aug: "HorizontalFlip"
   - aug: "VerticalFlip"
+  
+###INFERENCE SECTION 3D###
+test_dir3d: "/data/conradrw/benchmarks/urocell/3d/test/"
+mode3d: "orthoplane"
+threshold3d: 0.5
+eval_classes3d:
+  - 1
+  - 2
+mask_prediction3d: False
+save_dir3d: null

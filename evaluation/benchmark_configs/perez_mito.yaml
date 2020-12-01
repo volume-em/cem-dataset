@@ -36,10 +36,6 @@ encoder: "resnet50"
 #or a path to a custom .pth file with a state_dict
 pretraining: "cellemnet_mocov2"
 
-#set the layers in the encoder to finetune choice of:
-#none, layer4, layer3, layer2, layer1, all
-finetune_layer: "none"
-
 lr: 0.003
 wd: 0.1
 #choice of AdamW or SGD
@@ -98,3 +94,11 @@ augmentations:
     contrast_limit: 0.3
   - aug: "HorizontalFlip"
   - aug: "VerticalFlip"
+  
+###INFERENCE SECTION 2D###
+test_dir2d: "/data/conradrw/benchmarks/perez/mito/test/"
+threshold2d: 0.5
+instance_match2d: False
+eval_classes2d:
+  - 1
+save_dir2d: null

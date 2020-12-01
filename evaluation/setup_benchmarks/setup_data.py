@@ -19,11 +19,11 @@ if __name__ == '__main__':
     #parse the save directory
     args = parse_args()
     save_dir = args['save_dir']
-    """
+    
     #run the download_benchmarks.sh script
     command = f'bash download_benchmarks.sh {save_dir}'
     subprocess.call(command.split(' '))
-    
+
     #first, we need to fix up the lucchi_pp dataset:
     #1. the image and mask filenames are not the same
     #2. mask pixels are 255, should be 1 instead
@@ -50,7 +50,7 @@ if __name__ == '__main__':
             
             #remove the old file
             os.remove(mp)
-            
+    
     #next, fix up the kasthuri_pp dataset:
     #1. mask pixels are 255, should be 1 instead
     #2. masks have 3 channels, should only have 1
@@ -66,13 +66,15 @@ if __name__ == '__main__':
             if mask.ndim == 3:
                 mask = mask[..., 0]
                 
+            print(mask.max(), mask.min())
+                
             #background padding values are non-zero
             #dividing by 255 rounds them down to zero
             mask = (mask / 255).astype(np.uint8)
             
             #overwrite the mask file
             imsave(mp, mask, check_contrast=False)
-    
+            
     #next, fix up the perez datasets:
     #1. the image and mask filenames are not the same, all have different prefixes
     #so we'll just remove the prefix (*_orig.999.png --> 999.png)
@@ -197,8 +199,7 @@ if __name__ == '__main__':
         slice_dir = os.path.join(save_dir, f'urocell/2d/{setname}/')
         command = f'python create_slices.py {ip} {mp} {slice_dir} -a 0 1 2 -s 1'
         subprocess.call(command.split(' '))
-  
-
+        
     #next we're going to handle CREMI
     #1. extract image volumes and labelmap volumes from .hdf files
     #2. binarize the synaptic cleft labelmaps and convert to uint8
@@ -242,7 +243,6 @@ if __name__ == '__main__':
         slice_dir = os.path.join(save_dir, f'cremi/2d/{setname}/')
         command = f'python create_slices.py {ip} {mp} {slice_dir} -a 2 -s 1'
         subprocess.call(command.split(' '))
-    """
     
     #finally, let's make the All Mitochondria dataset
     #from perez mito, lucchi, kasthuri, urocell, and guay
@@ -259,11 +259,7 @@ if __name__ == '__main__':
         os.makedirs(os.path.join(save_dir, 'all_mito/train/images'))
         os.mkdir(os.path.join(save_dir, 'all_mito/train/masks'))
         os.makedirs(os.path.join(save_dir, 'all_mito/test/2d/'))
-        os.mkdir(os.path.join(save_dir, 'all_mito/test/2d/images'))
-        os.mkdir(os.path.join(save_dir, 'all_mito/test/2d/masks'))
         os.mkdir(os.path.join(save_dir, 'all_mito/test/3d/'))
-        os.mkdir(os.path.join(save_dir, 'all_mito/test/3d/images'))
-        os.mkdir(os.path.join(save_dir, 'all_mito/test/3d/masks'))
     
     #crop images in 256x256 patches from their sources directories
     benchmarks = ['perez/mito', 'lucchi_pp', 'kasthuri_pp', 'urocell/2d', 'guay/2d']
@@ -297,16 +293,19 @@ if __name__ == '__main__':
     for l, bmk in zip(benchmark_mito_labels, benchmarks):
         #glob all the images in the given test directory
         impaths = glob(os.path.join(save_dir, f'{bmk}/test/images/*'))
+        bmk = 'perez_mito' if bmk == 'perez/mito' else bmk
+        im_dst_dir = os.path.join(save_dir, f'all_mito/test/2d/{bmk}/images/')
+        msk_dst_dir = os.path.join(save_dir, f'all_mito/test/2d/{bmk}/masks/')
+        os.makedirs(im_dst_dir)
+        os.makedirs(msk_dst_dir)
+        
         for imp in impaths:
             fname = imp.split('/')[-1]
-            bmk = 'perez_mito' if bmk == 'perez/mito' else bmk
-            dst = os.path.join(save_dir, f'all_mito/test/2d/images/{bmk}-{fname}')
-            shutil.copy(imp, dst)
+            shutil.copy(imp, im_dst_dir + fname)
             
             #do the same for the corresponding mask
             imp = imp.replace('/images/', '/masks/')
-            dst = dst.replace('/images/', '/masks/')
-            shutil.copy(imp, dst)
+            shutil.copy(imp, msk_dst_dir + fname)
         
     #now copy only the mito label from the 3d benchmarks
     benchmarks = ['urocell/3d', 'guay/3d']
@@ -314,12 +313,17 @@ if __name__ == '__main__':
     for l, bmk in zip(benchmark_mito_labels, benchmarks):
         #glob all the images in the given test directory
         impaths = glob(os.path.join(save_dir, f'{bmk}/test/images/*'))
+        
+        bn_name = bmk.split('/')[0]
+        im_dst_dir = os.path.join(save_dir, f'all_mito/test/3d/{bn_name}/images/')
+        msk_dst_dir = os.path.join(save_dir, f'all_mito/test/3d/{bn_name}/masks/')
+        os.makedirs(im_dst_dir)
+        os.makedirs(msk_dst_dir)
+        
         for imp in impaths:
             #copy the image volume directly
             fname = imp.split('/')[-1]
-            bn_name = bmk.split('/')[0]
-            dst = os.path.join(save_dir, f'all_mito/test/3d/images/{bn_name}-{fname}')
-            shutil.copy(imp, dst)
+            shutil.copy(imp, im_dst_dir + fname)
             
             #open the mask volume with simpleitk
             #and remove everything but the mito label
@@ -343,5 +347,4 @@ if __name__ == '__main__':
                 mito_vol = sitk.Cast(labelmap, sitk.sitkUInt8)
             
             #save the result
-            dst = dst.replace('/images/', '/masks/')
-            sitk.WriteImage(mito_vol, dst)
+            sitk.WriteImage(mito_vol, msk_dst_dir + fname)

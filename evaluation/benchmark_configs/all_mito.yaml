@@ -35,10 +35,6 @@ encoder: "resnet50"
 #or a path to a custom .pth file with a state_dict
 pretraining: "cellemnet_mocov2"
 
-#set the layers in the encoder to finetune choice of:
-#none, layer4, layer3, layer2, layer1, all
-finetune_layers: "none"
-
 lr: 0.003
 wd: 0.1
 #choice of AdamW or SGD
@@ -103,3 +99,55 @@ augmentations:
     blur_limit: 7
   - aug: "HorizontalFlip"
   - aug: "VerticalFlip"
+  
+  
+###INFERENCE SECTION###
+test_dir: "/data/conradrw/benchmarks/all_mito/test/"
+benchmark_names:
+  - "perez_mito"
+  - "kasthuri_pp"
+  - "lucchi_pp"
+  - "guay"
+  - "urocell"
+benchmark_dimensions:
+  - "2d"
+  - "2d"
+  - "2d"
+  - "3d"
+  - "3d"
+eval_classes:
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+thresholds:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+instance_match2d:
+  - True
+  - False
+  - False
+  - null
+  - null
+mode3d:
+  - null
+  - null
+  - null
+  - "stack"
+  - "orthoplane"
+mask_prediction3d:
+  - null
+  - null
+  - null
+  - True
+  - True
+save_dirs:
+  - null
+  - null
+  - null
+  - null
+  - null

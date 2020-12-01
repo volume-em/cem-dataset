@@ -51,10 +51,6 @@ encoder: "resnet50"
 #or a path to a custom .pth file with a state_dict
 pretraining: "cellemnet_mocov2"
 
-#set the layers in the encoder to finetune choice of:
-#none, layer4, layer3, layer2, layer1, all
-finetune_layer: "none"
-
 lr: 0.003
 wd: 0.1
 #choice of AdamW or SGD
@@ -119,3 +115,16 @@ augmentations:
     blur_limit: 7
   - aug: "HorizontalFlip"
   - aug: "VerticalFlip"
+  
+###INFERENCE SECTION 3D###
+test_dir3d: "/data/conradrw/benchmarks/guay/3d/test/"
+mode3d: "stack"
+threshold3d: 0.5
+eval_classes3d:
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+mask_prediction3d: True
+save_dir3d: null
