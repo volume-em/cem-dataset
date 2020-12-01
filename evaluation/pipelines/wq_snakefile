@@ -32,11 +32,22 @@ if not os.path.isdir(BASE_MODEL_DIR):
 
 #the finetune layers are zipped together with pretrainings
 #such that they form pairs like (random_init, all), (imagenet_supervised, none), etc.
-PRETRAININGS = ['random_init', 'imagenet_supervised', 'imagenet_mocov2', 'cellemnet_mocov2']
-FINETUNE_LAYERS = ['all', 'none', 'none', 'none']
+#PRETRAININGS = ['random_init', 'imagenet_supervised', 'imagenet_mocov2', 'cellemnet_mocov2']
+#FINETUNE_LAYERS = ['all', 'none', 'none', 'none']
+PRETRAININGS = ['cellemnet_mocov2']
+FINETUNE_LAYERS = ['none']
 
-BENCHMARKS = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 'perez_mito', 'perez_nuclei', 
-              'perez_nucleoli', 'guay', 'urocell', 'cremi', 'all_mito']
+#group the benchmarks by their dimensionality
+#the all_mito benchmark has it's own group
+#BENCHMARKS2d = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 
+#                'perez_mito', 'perez_nuclei', 'perez_nucleoli']
+#BENCHMARKS3d = ['guay', 'urocell', 'cremi']
+BENCHMARKS2d = []
+BENCHMARKS3d = []
+BENCHMARKS_ALL_MITO = ['all_mito']
+
+#no duplicates
+BENCHMARKS = list(set(BENCHMARKS2d + BENCHMARKS3d + BENCHMARKS_ALL_MITO))
 
 #directory with the benchmark configuration files
 CONFIG_DIR = '../benchmark_configs/'
@@ -46,7 +57,7 @@ CONFIG_DIR = '../benchmark_configs/'
 #ITERATIONS = [100, 500, 1000, 2500, 5000, 10000]
 
 #for most benchmarks, 2500 is a good place to start
-ITERATIONS = [2500]
+ITERATIONS = [1000]
 
 def zip_and_product(*iterables):
     #first we're going to zip together the pretraining
@@ -64,17 +75,53 @@ def zip_and_product(*iterables):
 
 rule all:
     input:
-        expand(os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth'), zip_and_product,
-               benchmark=BENCHMARKS, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS)
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth'), 
+               zip_and_product, benchmark=BENCHMARKS, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake2d'), 
+               zip_and_product, benchmark2d=BENCHMARKS2d, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake3d'), 
+               zip_and_product, benchmark3d=BENCHMARKS3d, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake_all_mito'), 
+               zip_and_product, benchmark_all_mito=BENCHMARKS_ALL_MITO, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS)
         
 rule train:
     input:
         os.path.join(CONFIG_DIR, '{benchmark}.yaml')
     params:
+        #to use the parameters set in the config file instead, just set the parameters
+        #below to equal None
         md = os.path.join(BASE_MODEL_DIR), #directory to save benchmark model states
         n = lambda wildcards: int(wildcards.iters), #number of training iterations
-        ft = '{finetune_layer}'
+        ft = '{finetune_layer}',
+        pf = None
     output:
         os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
     script:
         os.path.join(SCRIPT_PATH, 'finetune.py')
+
+rule inference2d:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark2d}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake2d')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference2d.py')
+    
+rule inference3d:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark3d}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake3d')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference3d.py')
+        
+rule inference_all_mito:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark_all_mito}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake_all_mito')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference_all_mito.py')

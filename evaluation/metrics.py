@@ -1,10 +1,6 @@
+import numpy as np
 import torch
 import torch.nn as nn
-from copy import deepcopy
-from matplotlib import pyplot as plt
-
-import numpy as np
-import skimage.measure as measure
 
 class AverageMeter:
     """Computes average values"""
@@ -43,36 +39,8 @@ class EMAMeter:
 
 class IoU:
     """
-    Computes IoU metric for batch of predictions and masks.
-    
-    Arguments:
-    logits: If logits is True, then a sigmoid activation is applied to output
-    before additional calculations. If False, then it is assumed that sigmoid
-    activation has already been applied previously.
-    
-    Return:
-    Calculate method adds calculated IoU value to a running average for epoch end
-    evaluation.
-    
-    Usage:
-    Case 1: Training loop
-    
-    iou = IoU()
-    #NOTE: output.size == target.size
-    for batch in epoch:
-        ...
-        iou.calculate(output, target)
-        ...
-    iou.epoch_end()
-    print(iou.history) #prints the average value of IoU for all batches in the epoch
-    
-    Case 2: Single image or batch
-    
-    iou = IoU()
-    #NOTE: output.size == target.size
-    iou.calculate(output, target)
-    iou.epoch_end()
-    print(iou.history) #prints the value of IoU for output and target
+    Give a meter object, calculates and stores average IoU results
+    from batches of train or evaluation data.
     
     """
     
@@ -137,25 +105,16 @@ class ComposeMetrics:
     A class for composing metrics together.
     
     Arguments:
+    ----------
+    
     metrics_dict: A dictionary in which each key is the name of a metric and
-    each value is a subclass of Metric with a calculate method that accepts
-    model predictions and ground truth labels.
+    each value is a metric object.
     
-    Example:
-    metrics_dict = {'IoU': IoU(), 'Dice coeff': Dice()}
-    metrics = Compose(metrics_dict)
-    #output.size == target.size
-    metrics.evaluate(output, target)
+    class_names: Optional list of names for each class index (e.g. mitochondria, lysosomes, etc.)
     
-    #to print value of IoU only
-    #if close_epoch() is not called, history will be empty
-    metrics.close_epoch()
-    print(metrics.metrics['IoU'].history)
+    reset_on_print: Boolean. Whether to reset the results for each metric after the print
+    function is called. Default True.
     
-    #to print value of all metrics in metric_dict
-    #if close_epoch() is not called, history will be empty
-    metrics.close_epoch()
-    print(metrics.print())
     """
     def __init__(self, metrics_dict, class_names=None, reset_on_print=True):
         self.metrics_dict = metrics_dict
