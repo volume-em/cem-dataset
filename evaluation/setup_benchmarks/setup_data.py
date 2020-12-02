@@ -15,15 +15,15 @@ def parse_args():
     return args
 
 if __name__ == '__main__':
-    
     #parse the save directory
     args = parse_args()
     save_dir = args['save_dir']
-    
-    #run the download_benchmarks.sh script
-    command = f'bash download_benchmarks.sh {save_dir}'
-    subprocess.call(command.split(' '))
 
+    #run the download_benchmarks.sh script
+    download_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), download_benchmarks.sh)
+    command = f'bash {download_script} {save_dir}'
+    subprocess.call(command.split(' '))
+    
     #first, we need to fix up the lucchi_pp dataset:
     #1. the image and mask filenames are not the same
     #2. mask pixels are 255, should be 1 instead
@@ -87,15 +87,13 @@ if __name__ == '__main__':
         prefix = orig_name.split('.')[0]
         new_name = orig_name.replace(f'{prefix}.', '') #remove the prefix and the trailing dot
         os.rename(fp, fp.replace(orig_name, new_name))
-
+    
     #next, the guay dataset:
     #1. image volumes are 16-bit signed pixels, convert them to 8-bit unsigned
     #2. mask volumes are 16-bit unsigned pixels, convert them to 8-bit unsigned
     #3. mask volumes have a different name that image volumes change '-labels' to '-images'
     #4. slice cross sections to make 2d versions of the train, validation, and test sets
     guay_impaths = glob(os.path.join(save_dir, f'guay/3d/*/images/*.tif')) #e.g. guay/3d/train/images/*.tif
-    uint16_max = 2 ** 16 - 1
-    int16_min = -(2 ** 15)
     for ip in guay_impaths:
         #load the volume
         vol = sitk.ReadImage(ip)
@@ -106,8 +104,10 @@ if __name__ == '__main__':
         #convert the volume to float
         vol = vol.astype('float')
         
-        #subtract int16_min, divide by uint16_max, multiply by 255
-        vol = ((vol - int16_min) / uint16_max) * 255
+        #subtract min, divide by max, multiply by 255
+        vol -= vol.min()
+        vol /= vol.max()
+        vol *= 255
         
         #convert to uint8
         vol = vol.astype(np.uint8)
@@ -260,7 +260,7 @@ if __name__ == '__main__':
         os.mkdir(os.path.join(save_dir, 'all_mito/train/masks'))
         os.makedirs(os.path.join(save_dir, 'all_mito/test/2d/'))
         os.mkdir(os.path.join(save_dir, 'all_mito/test/3d/'))
-    
+
     #crop images in 256x256 patches from their sources directories
     benchmarks = ['perez/mito', 'lucchi_pp', 'kasthuri_pp', 'urocell/2d', 'guay/2d']
     benchmark_mito_labels = [1, 1, 1, 2, 2]
@@ -286,7 +286,7 @@ if __name__ == '__main__':
         if (image > 0).sum() < thr:
             os.remove(ip)
             os.remove(mp)
-            
+        
     #copy the test images from 2d datasets into the 2d test directory
     benchmarks = ['perez/mito', 'lucchi_pp', 'kasthuri_pp']
     benchmark_mito_labels = [1, 1, 1]
@@ -306,7 +306,8 @@ if __name__ == '__main__':
             #do the same for the corresponding mask
             imp = imp.replace('/images/', '/masks/')
             shutil.copy(imp, msk_dst_dir + fname)
-        
+    
+
     #now copy only the mito label from the 3d benchmarks
     benchmarks = ['urocell/3d', 'guay/3d']
     benchmark_mito_labels = [2, 2]
@@ -330,10 +331,7 @@ if __name__ == '__main__':
             imp = imp.replace('/images/', '/masks/')
             if bn_name == 'urocell':
                 vol = sitk.ReadImage(imp)
-                mask = vol <= 1
-                mito = vol == 2
-                #make the mito label 1 and the mask label 2
-                labelmap = mito + 2 * mask
+                labelmap = vol == 2
                 mito_vol = sitk.Cast(labelmap, sitk.sitkUInt8)
             else:
                 #keep labels 0, 1, 2 for guay (label 1 is the mask in which 
@@ -341,9 +339,10 @@ if __name__ == '__main__':
                 #load the volumes
                 vol = sitk.ReadImage(imp)
                 cell = vol == 1
+                other = vol > 2
                 mito = vol == 2
                 #make the mito label 1 and the cell label 2
-                labelmap = mito + 2 * cell
+                labelmap = mito + 2 * (cell + other)
                 mito_vol = sitk.Cast(labelmap, sitk.sitkUInt8)
             
             #save the result

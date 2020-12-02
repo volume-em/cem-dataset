@@ -1,4 +1,4 @@
-import os, sys, argparse, warnings, cv2
+import os, sys, argparse, warnings, cv2, yaml
 import mlflow
 import numpy as np
 import torch
@@ -14,7 +14,7 @@ from albumentations import Compose, Normalize
 from albumentations.pytorch import ToTensorV2
 import segmentation_models_pytorch as smp
 
-from data import SegmentationData, FactorResize
+from resources.data import SegmentationData, FactorResize
 
 def mean_iou(output, target):
     #make target the same shape as output by unsqueezing
@@ -59,31 +59,75 @@ def mean_iou(output, target):
 def parse_args():
     #setup the argument parser
     parser = argparse.ArgumentParser(description='Evaluate on set of 2d images')
-    parser.add_argument('data_dir', type=str, metavar='data_dir', help='Directory containing 2d test images')
+    parser.add_argument('config', type=str, metavar='config', help='Path to a config yaml file')
     parser.add_argument('state_path', type=str, metavar='state_path', help='Path to model state file')
-    parser.add_argument('--save_dir', type=str, metavar='save_dir', dest='save_dir',
+    parser.add_argument('--save_dir2d', type=str, metavar='save_dir2d', dest='save_dir2d',
                         help='Directory to save segmentation results, if None, the results are not saved.')
-    parser.add_argument('--threshold', type=float, metavar='threshold', default=0.5,
-                        help='Prediction confidence threshold [0-1]')
-    parser.add_argument('--eval_classes', dest='eval_classes', type=int, metavar='eval_classes', nargs='+',
+    parser.add_argument('--threshold2d', type=float, metavar='threshold2d', help='Prediction confidence threshold [0-1]')
+    parser.add_argument('--eval_classes2d', dest='eval_classes2d', type=int, metavar='eval_classes', nargs='+',
                         help='Index/indices of classes to evaluate for multiclass segmentation')
-    parser.add_argument('--instance_match', action='store_true', help='whether to evaluate IoU by instance matching')
+    parser.add_argument('--instance_match2d', action='store_true', help='whether to evaluate IoU by instance matching')
     args = vars(parser.parse_args())
     
     return args
 
+def snakemake_args():
+    params = vars(snakemake.params)
+    params['config'] = snakemake.input[0]
+    params['state_path'] = snakemake.input[1]
+    del params['_names']
+    
+    #fill in the other arguments
+    #that are handled by the config
+    params['save_dir2d'] = None
+    params['threshold2d'] = None
+    params['eval_classes2d'] = None
+    params['instance_match2d'] = False
+    
+    return params
+
 if __name__ == '__main__':
+    if 'snakemake' in globals():
+        args = snakemake_args()
+        #because snakemake expects an output file
+        #we'll make a dummy file here
+        with open(args['state_path'] + '.snakemake2d', mode='w') as f:
+            f.write("This is dummy file for snakemake")
+    else:
+        args = parse_args()
+        
+    #read the config file
+    with open(args['config'], 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+        
+    #add the state path to config
+    config['state_path'] = args['state_path']
+    
+    #overwrite the parameters, if given
+    if args['save_dir2d'] is not None:
+        config['save_dir2d'] = args['save_dir2d']
+    if args['threshold2d'] is not None:
+        config['threshold2d'] = args['threshold2d']
+    if args['eval_classes2d'] is not None:
+        config['eval_classes2d'] = args['eval_classes2d']
+    if args['instance_match2d'] is not False:
+        config['instance_match2d'] = args['instance_match2d']
+
     #read in the arguments
-    args = parse_args()
-    data_dir = args['data_dir']
-    state_path = args['state_path']
-    save_dir = args['save_dir']
-    threshold = args['threshold']
+    test_dir = config['test_dir2d']
+    state_path = config['state_path']
+    save_dir = config['save_dir2d']
+    threshold = config['threshold2d']
+    
+    #make sure that the threshold is set
+    #to default if something else wasn't given
+    if threshold is None:
+        threshold = 0.5
     
     #the last arguments are only if there is a ground truth
     #against which to compare the prediction
-    eval_classes = args['eval_classes']
-    instance_match = args['instance_match']
+    eval_classes = config['eval_classes2d']
+    instance_match = config['instance_match2d']
     
     #if we're going to save the segmentation, let's
     #make sure that the directory exists
@@ -109,7 +153,8 @@ if __name__ == '__main__':
     #2. How many input channels? Get it from the length of the norms
     #3. How many output channels? Get it from size of the last
     #parameter in the state_dict (the output bias tensor)
-    norms = state['norms']
+    #norms = state['norms']
+    norms = [0.58331613, 0.09966064]
     
     #if there are multiple channels, the mean and std will
     #be lists, otherwise their just single floats
@@ -135,7 +180,7 @@ if __name__ == '__main__':
     ])
 
     #create the dataset and dataloader
-    test_data = SegmentationData(data_dir, tfs=eval_tfs, gray_channels=gray_channels)
+    test_data = SegmentationData(test_dir, tfs=eval_tfs, gray_channels=gray_channels)
     test = DataLoader(test_data, batch_size=1, shuffle=False, pin_memory=True, num_workers=8)
     
     #determine if we're in inference only mode or not
@@ -253,10 +298,10 @@ if __name__ == '__main__':
             
         #print the overall mean
         mean_iou = image_ious.mean()
-        print(f'Mean IoU {mean_iou}')
+        print(f'Mean IoU: {mean_iou}')
         
         #store the results if logging in mlflow
-        if run_id is not None:
-            with mlflow.start_run(run_id=run_id) as run:
-                mlflow.log_metric('Mean_IoU_2d', mean_iou, step=0)
-            print('Stored mean IoU in mlflow run.')
+        #if run_id is not None:
+        #    with mlflow.start_run(run_id=run_id) as run:
+        #        mlflow.log_metric('Test_Set_IoU', mean_iou, step=0)
+        #    print('Stored mean IoU in mlflow run.')

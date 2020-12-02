@@ -69,9 +69,10 @@ if __name__ == '__main__':
         
     #add the state path to config
     config['state_path'] = args['state_path']
-    config['save_dir3d'] = args['save_dir3d']
     
     #overwrite the parameters, if given
+    if args['save_dir3d'] is not None:
+        config['save_dir3d'] = args['save_dir3d']
     if args['mode3d'] is not None:
         config['mode3d'] = args['mode3d']
     if args['threshold3d'] is not None:
@@ -93,8 +94,8 @@ if __name__ == '__main__':
     if threshold is None:
         threshold = 0.5
     
-    eval_classes = args['eval_classes3d']
-    mask_prediction = args['mask_prediction3d']
+    eval_classes = config['eval_classes3d']
+    mask_prediction = config['mask_prediction3d']
     
     #if we're going to save the segmentation, let's
     #make sure that the directory exists
@@ -130,8 +131,8 @@ if __name__ == '__main__':
     #2. How many input channels? Get it from the length of the norms
     #3. How many output channels? Get it from size of the last
     #parameter in the state_dict (the output bias tensor)
-    norms = state['norms']
-    #norms = [0.58331613, 0.09966064]
+    #norms = state['norms']
+    norms = [0.58331613, 0.09966064]
     
     #if there are multiple channels, the mean and std will
     #be lists, otherwise their just single floats
@@ -174,6 +175,10 @@ if __name__ == '__main__':
     #scaled versions. This let's us operate with unsigned
     #8-bit integer voxels: a great memory savings over float32
     scaling = 255 / len(axes)
+    
+    #if we're working with a single class
+    #use the threshold, otherwise take the argmax
+    threshold = int(255 * threshold)
     
     #loop through all of the image paths and make predictions
     volume_mean_ious = []
@@ -249,10 +254,7 @@ if __name__ == '__main__':
                         prediction_volume[:, :, index] += prediction
                     else:
                         prediction_volume[:, :, :, index] += prediction
-
-        #if we're working with a single class
-        #use the threshold, otherwise take the argmax
-        threshold = int(255 * threshold)
+            
         if num_classes == 1:
             prediction_volume = (prediction_volume > threshold).astype(np.uint8)[0] #(1, D, H, W) --> (D, H, W)
         else:
@@ -261,17 +263,18 @@ if __name__ == '__main__':
         #if we're saving the prediction, now's the time to do it
         if save_dir is not None:
             #convert the numpy volume to a SimpleITK image
-            prediction_volume = sitk.GetImageFromArray(prediction_volume)
+            save_prediction = sitk.GetImageFromArray(prediction_volume)
 
             #copy the metadata from the original volume
             #this include pixel spacing, origin, and direction
-            prediction_volume.CopyInformation(orig_vol)
+            save_prediction.CopyInformation(orig_vol)
             
             #get the volume name from it's path
             vol_name = imvol.split('/')[-1]
 
             #save the volume
-            sitk.WriteImage(prediction_volume, os.path.join(save_dir, vol_name))
+            sitk.WriteImage(save_prediction, os.path.join(save_dir, vol_name))
+            del save_prediction
 
         #this next section only applies if there is a ground truth volume
         #to compare against
@@ -333,8 +336,8 @@ if __name__ == '__main__':
         print(f'Overall mean IoU 3d: {mean_iou}')
 
         #all that's left now is to store the mean iou
-        if run_id is not None:
-            with mlflow.start_run(run_id=run_id) as run:
-                mlflow.log_metric('Mean_IoU_3d', mean_iou, step=0)
+        #if run_id is not None:
+        #    with mlflow.start_run(run_id=run_id) as run:
+        #        mlflow.log_metric('Test_Set_IoU', mean_iou, step=0)
 
-            print('Stored mean IoU in mlflow run.')
+        #    print('Stored mean IoU in mlflow run.')

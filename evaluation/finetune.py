@@ -11,9 +11,9 @@ from albumentations import (
 )
 from albumentations.pytorch import ToTensorV2
 
-from data import SegmentationData, FactorResize
-from train_utils import Trainer
-from utils import load_pretrained_state_for_unet, moco_to_unet_prefixes
+from resources.data import SegmentationData, FactorResize
+from resources.train_utils import Trainer
+from resources.utils import load_pretrained_state_for_unet, moco_to_unet_prefixes
 
 augmentation_dict = {
     'PadIfNeeded': PadIfNeeded, 'HorizontalFlip': HorizontalFlip, 'VerticalFlip': VerticalFlip,
@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument('-md', type=str, dest='md', metavar='model_dir', 
                         help='Directory in which to save models')
     parser.add_argument('-pf', type=str, dest='pf', metavar='pretraining_file', 
-                        help='Path to a pretained state_dict')
+                        help='Path to a pretrained state_dict')
     parser.add_argument('-n', type=int, dest='n', metavar='iters', 
                         help='Number of training iterations')
     ft_layer_choices = ['all', 'layer4', 'layer3', 'layer2', 'layer1', 'none']
@@ -123,8 +123,9 @@ if __name__ == "__main__":
         #create the Unet model and load the pretrained weights
         model = smp.Unet(config['encoder'], in_channels=gray_channels, encoder_weights=None, classes=config['num_classes'])
         msg = model.load_state_dict(state_dict, strict=False)
+        print(f'Successfully loaded parameters from {pretraining}')
     else: #random initialization
-        print('No valid pretraining found. Using randomly initialized weights!')
+        print('No pretraining found. Using randomly initialized weights!')
         gray_channels = 1
         model = smp.Unet(config['encoder'], in_channels=gray_channels, encoder_weights=None, classes=config['num_classes'])
         #use the norms defined for the dataset in the config file

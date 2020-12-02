@@ -31,7 +31,6 @@ if __name__ == '__main__':
         args = parse_args()
         
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    print(script_dir)
         
     #read the config file
     config_path = args['config']
@@ -104,6 +103,7 @@ if __name__ == '__main__':
         command = f'python {script} {tmp_yaml_file} {state_path}'
         result = subprocess.run(command.split(' '), stdout=subprocess.PIPE)
         result = result.stdout.decode('utf-8')
+        print(result)
         
         if benchmark_dim == '2d':
             iou_start = np.core.defchararray.find(result, 'Mean IoU: ')
@@ -121,14 +121,14 @@ if __name__ == '__main__':
         print(f'{benchmark} IoU: {iou:.5f}')
         
         #if we're using logging, log the result by benchmark
-        if run_id is not None:
-            with mlflow.start_run(run_id=run_id) as run:
-                mlflow.log_metric(f'{benchmark}_iou', iou, step=0)
+        #if run_id is not None:
+        #    with mlflow.start_run(run_id=run_id) as run:
+        #        mlflow.log_metric(f'{benchmark}_iou', iou, step=0)
                 
     
     #and again, if logging calculate the mean over all the benchmarks
     #and save the results as Mean_IoU_All_Mito
     #if we're using logging, log the result by benchmark
-    if run_id is not None:
-        with mlflow.start_run(run_id=run_id) as run:
-            mlflow.log_metric(f'Test_Set_IoU', np.mean(benchmark_ious).item(), step=0)
+    #if run_id is not None:
+    #    with mlflow.start_run(run_id=run_id) as run:
+    #        mlflow.log_metric(f'Test_Set_IoU', np.mean(benchmark_ious).item(), step=0)
