@@ -36,10 +36,10 @@ import os
 from itertools import product
 
 #location of the finetune and inference scripts
-SCRIPT_PATH = './'
+SCRIPT_PATH = ''
 
 #directory to save models
-BASE_MODEL_DIR = './models/data_quality/'
+BASE_MODEL_DIR = 'models/data_quality/'
 
 #let's make the model path
 if not os.path.isdir(BASE_MODEL_DIR):
@@ -54,16 +54,14 @@ PRETRAINING_FILE_DIRS = list(PRETRAINING_LOOKUP.keys())
 FINETUNE_LAYERS = ['none', 'none']
 
 #the all_mito benchmark has it's own group
-#BENCHMARKS2d = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 
-#                'perez_mito', 'perez_nuclei', 'perez_nucleoli']
-#BENCHMARKS3d = ['guay', 'urocell', 'cremi']
-BENCHMARKS2d = []
-BENCHMARKS3d = []
+BENCHMARKS2d = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 
+                'perez_mito', 'perez_nuclei', 'perez_nucleoli']
+BENCHMARKS3d = ['guay', 'urocell', 'cremi']
 BENCHMARKS_ALL_MITO = ['all_mito']
 BENCHMARKS = BENCHMARKS2d + BENCHMARKS3d + BENCHMARKS_ALL_MITO
 
 #directory with the benchmark configuration files
-CONFIG_DIR = './benchmark_configs/'
+CONFIG_DIR = 'benchmark_configs/'
 
 #we tested with 5000 iterations;
 #no reason why it has to be though

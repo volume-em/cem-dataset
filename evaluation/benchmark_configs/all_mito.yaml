@@ -5,7 +5,7 @@ class_names:
   - "mito"
 
 #set the directories for data and models
-data_dir: "/data/IASEM/conradrw/data/benchmarks/mito/2d/"
+data_dir: "/data/conradrw/benchmarks/all_mito/"
 model_dir: "/data/conradrw/models/"
 
 #whether to log the run in MLFlow
@@ -21,12 +21,12 @@ num_save_checkpoints: 1
 resume: ""
 
 #hyperparameters
-bsz: 16
+bsz: 32
 jobs: 8
 #choice of none, layer4, layer3, layer2, layer 1, or all
 finetune_layer: "none"
 #choice of True or False
-unfreeze_encoder_bn: True
+unfreeze_encoder_bn: False
 #currently, only resnet50 is supported
 encoder: "resnet50"
 
@@ -144,7 +144,7 @@ mask_prediction3d:
   - null
   - null
   - True
-  - True
+  - False
 save_dirs:
   - null
   - null

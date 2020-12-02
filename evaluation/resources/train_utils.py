@@ -6,9 +6,7 @@ import torch.backends.cudnn as cudnn
 from torch.optim import AdamW, SGD
 from torch.optim.lr_scheduler import OneCycleLR, MultiStepLR, LambdaLR
 from tqdm import tqdm
-
-#relative imports
-from metrics import ComposeMetrics, IoU, EMAMeter, AverageMeter
+from .metrics import ComposeMetrics, IoU, EMAMeter, AverageMeter
 
 metric_lookup = {'IoU': IoU}
 

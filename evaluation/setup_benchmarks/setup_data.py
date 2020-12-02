@@ -20,7 +20,7 @@ if __name__ == '__main__':
     save_dir = args['save_dir']
 
     #run the download_benchmarks.sh script
-    download_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), download_benchmarks.sh)
+    download_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'download_benchmarks.sh')
     command = f'bash {download_script} {save_dir}'
     subprocess.call(command.split(' '))
     
