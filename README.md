@@ -17,8 +17,6 @@ Dataset IDs for the versions of the CellEMNet dataset are:
 | Dataset name  | Image sizes   | Dataset ID       | Number of images | Date Updated  | 
 | ------------- | ------------- | ---------------- | ---------------- | ------------- |
 | CEM500K       | 224x224       | ????????         | 486,102          | 08/20/2020    |
-| CEM4K-F3D     | 224x224x224   | ????????         | 3,618            | 11/21/2020    |
-| CEM100K-S3D   | 224x224x32    | ????????         | 98,298           | 11/21/2020    |
 
 
 ## Download the Weights
