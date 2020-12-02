@@ -37,7 +37,7 @@ import torchvision.transforms as tf
 
 import builder
 from dataset import EMData, GaussianBlur, GaussNoise
-from resnet import resnet50
+from pretraining.resnet import resnet50
 
 #my imports 
 import mlflow
