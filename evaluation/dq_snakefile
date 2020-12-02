@@ -36,10 +36,10 @@ import os
 from itertools import product
 
 #location of the finetune and inference scripts
-SCRIPT_PATH = '../'
+SCRIPT_PATH = './'
 
 #directory to save models
-BASE_MODEL_DIR = '../models/data_quality/'
+BASE_MODEL_DIR = './models/data_quality/'
 
 #let's make the model path
 if not os.path.isdir(BASE_MODEL_DIR):
@@ -53,11 +53,17 @@ PRETRAINING_LOOKUP = {ptp.split('/')[-2]: ptp for ptp in PRETRAINING_PATHS}
 PRETRAINING_FILE_DIRS = list(PRETRAINING_LOOKUP.keys())
 FINETUNE_LAYERS = ['none', 'none']
 
-BENCHMARKS = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 'perez_mito', 'perez_nuclei', 
-              'perez_nucleoli', 'guay', 'urocell', 'cremi', 'all_mito']
+#the all_mito benchmark has it's own group
+#BENCHMARKS2d = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 
+#                'perez_mito', 'perez_nuclei', 'perez_nucleoli']
+#BENCHMARKS3d = ['guay', 'urocell', 'cremi']
+BENCHMARKS2d = []
+BENCHMARKS3d = []
+BENCHMARKS_ALL_MITO = ['all_mito']
+BENCHMARKS = BENCHMARKS2d + BENCHMARKS3d + BENCHMARKS_ALL_MITO
 
 #directory with the benchmark configuration files
-CONFIG_DIR = '../benchmark_configs/'
+CONFIG_DIR = './benchmark_configs/'
 
 #we tested with 5000 iterations;
 #no reason why it has to be though
@@ -80,7 +86,13 @@ def zip_and_product(*iterables):
 rule all:
     input:
         expand(os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining_file_dir}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth'), zip_and_product,
-               benchmark=BENCHMARKS, pretraining_file_dir=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS)
+               benchmark=BENCHMARKS, pretraining_file_dir=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake2d'), 
+               zip_and_product, benchmark2d=BENCHMARKS2d, pretraining=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake3d'), 
+               zip_and_product, benchmark3d=BENCHMARKS3d, pretraining=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake_all_mito'), 
+               zip_and_product, benchmark_all_mito=BENCHMARKS_ALL_MITO, pretraining=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS)
         
 rule train:
     input:
@@ -94,3 +106,30 @@ rule train:
         os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
     script:
         os.path.join(SCRIPT_PATH, 'finetune.py')
+        
+rule inference2d:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark2d}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake2d')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference2d.py')
+    
+rule inference3d:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark3d}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake3d')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference3d.py')
+        
+rule inference_all_mito:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark_all_mito}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake_all_mito')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference_all_mito.py')

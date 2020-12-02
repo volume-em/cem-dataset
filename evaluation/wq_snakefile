@@ -20,11 +20,11 @@ import os
 from itertools import product
 
 #location of the finetune and inference scripts
-SCRIPT_PATH = '../'
+SCRIPT_PATH = './'
 
 #directories for each benchmark will be
 #created in this directory
-BASE_MODEL_DIR = '../models/weight_quality/'
+BASE_MODEL_DIR = './models/weight_quality/'
 
 #let's make the model path
 if not os.path.isdir(BASE_MODEL_DIR):
@@ -45,12 +45,10 @@ FINETUNE_LAYERS = ['none']
 BENCHMARKS2d = []
 BENCHMARKS3d = []
 BENCHMARKS_ALL_MITO = ['all_mito']
-
-#no duplicates
-BENCHMARKS = list(set(BENCHMARKS2d + BENCHMARKS3d + BENCHMARKS_ALL_MITO))
+BENCHMARKS = BENCHMARKS2d + BENCHMARKS3d + BENCHMARKS_ALL_MITO
 
 #directory with the benchmark configuration files
-CONFIG_DIR = '../benchmark_configs/'
+CONFIG_DIR = './benchmark_configs/'
 
 #for testing training speed use multiple training iterations
 #this will produce a lot of models though
