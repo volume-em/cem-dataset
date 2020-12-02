@@ -121,14 +121,14 @@ if __name__ == '__main__':
         print(f'{benchmark} IoU: {iou:.5f}')
         
         #if we're using logging, log the result by benchmark
-        #if run_id is not None:
-        #    with mlflow.start_run(run_id=run_id) as run:
-        #        mlflow.log_metric(f'{benchmark}_iou', iou, step=0)
+        if run_id is not None:
+            with mlflow.start_run(run_id=run_id) as run:
+                mlflow.log_metric(f'{benchmark}_iou', iou, step=0)
                 
     
     #and again, if logging calculate the mean over all the benchmarks
     #and save the results as Mean_IoU_All_Mito
     #if we're using logging, log the result by benchmark
-    #if run_id is not None:
-    #    with mlflow.start_run(run_id=run_id) as run:
-    #        mlflow.log_metric(f'Test_Set_IoU', np.mean(benchmark_ious).item(), step=0)
+    if run_id is not None:
+        with mlflow.start_run(run_id=run_id) as run:
+            mlflow.log_metric(f'Test_Set_IoU', np.mean(benchmark_ious).item(), step=0)

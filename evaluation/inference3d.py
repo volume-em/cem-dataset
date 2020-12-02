@@ -336,8 +336,8 @@ if __name__ == '__main__':
         print(f'Overall mean IoU 3d: {mean_iou}')
 
         #all that's left now is to store the mean iou
-        #if run_id is not None:
-        #    with mlflow.start_run(run_id=run_id) as run:
-        #        mlflow.log_metric('Test_Set_IoU', mean_iou, step=0)
+        if run_id is not None:
+            with mlflow.start_run(run_id=run_id) as run:
+                mlflow.log_metric('Test_Set_IoU', mean_iou, step=0)
 
-        #    print('Stored mean IoU in mlflow run.')
+            print('Stored mean IoU in mlflow run.')
