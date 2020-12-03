@@ -30,7 +30,7 @@ python inference3d.py urocell.yaml {model_dir}/urocell-cellemnet_mocov2_ft_none_
 The one exception is the All Mitochondria benchmark in which the test set consists of both 2D and 3D data and a mishmash of evaluation protocols. To handle all these cases, the benchmark uses a custom inference script which can be run with:
 
 ```
-python inference_all_mito.py all_mito.yaml {model_dir}/all_mito-cellemnet_mocov2_ft_none_epoch1000_of_1000.pth
+python inference_mixed.py all_mito.yaml {model_dir}/all_mito-cellemnet_mocov2_ft_none_epoch1000_of_1000.pth
 ```
 
 By default, all the config files are set with mlflow logging enabled. This will create a directory called mlruns. To launch the mlflow dashboard:
@@ -46,16 +46,16 @@ The dashboard is grouped by benchmarks and records both training and inference r
 The fastest way to evaluate results on the benchmarks is to use the provided [snakemake](https://snakemake.readthedocs.io/en/stable/) files. Simply run:
 
 ```
-snakemake -s wq_snakefile
+snakemake -s snakefile_wq
 ```
 
 or 
 
 ```
-snakemake -s dq_snakefile
+snakemake -s snakefile_dq
 ```
 
-We used wq_snakefile to train models with different initialization methods (random init., imagenet_supervised, cellemnet_mocov2) and dq_snakefile to compare models pretrained with the mocov2 algorithm on different EM datasets. 
+We used snakefile_wq to train models with different initialization methods (random init., imagenet_supervised, cellemnet_mocov2) and snakefile_dq to compare models pretrained with the mocov2 algorithm on different EM datasets. 
 
 
 ## Adding new benchmarks
@@ -75,6 +75,6 @@ Adding a new benchmark is a cinch. Create a directory containing the benchmark d
    |__masks
 ```
 
-Make sure that pairs of images and masks have the same file names. All images and masks in the train and valid directories must be 2D images (.tiff, .png, .jpg, etc.). Images in the test directory may be 2D or 3D (any file type supported by SimpleITK is OK). Duplicate a config files from one of the other benchmarks and modify the directories and parameters as needed; make sure the name of the config file is {new_benchmark}.yaml.
+Make sure that pairs of images and masks have the same file names. All images and masks in the train and valid directories must be 2D images (.tiff, .png, .jpg, etc.). To convert from image/labelmap volumes to 2D images, use the setup_benchmarks/create_slices.py script (see script for parameters). Images in the test directory may be 2D or 3D ([any file type supported by SimpleITK is OK](https://simpleitk.readthedocs.io/en/master/IO.html)). Duplicate a config files from one of the other benchmarks and modify the directories and parameters as needed; make sure the name of the config file is {new_benchmark}.yaml.
 
 To evaluate this new benchmark with snakemake, just add the benchmark name, {new_benchmark}, to either the BENCHMARKS2d or BENCHMARKS3d list based on the dimensionality of its test set. Then run the snakemake file as before.

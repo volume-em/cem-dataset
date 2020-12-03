@@ -57,8 +57,8 @@ FINETUNE_LAYERS = ['none', 'none']
 BENCHMARKS2d = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 
                 'perez_mito', 'perez_nuclei', 'perez_nucleoli']
 BENCHMARKS3d = ['guay', 'urocell', 'cremi']
-BENCHMARKS_ALL_MITO = ['all_mito']
-BENCHMARKS = BENCHMARKS2d + BENCHMARKS3d + BENCHMARKS_ALL_MITO
+BENCHMARKS_MIXED = ['all_mito']
+BENCHMARKS = BENCHMARKS2d + BENCHMARKS3d + BENCHMARKS_MIXED
 
 #directory with the benchmark configuration files
 CONFIG_DIR = 'benchmark_configs/'
@@ -89,8 +89,8 @@ rule all:
                zip_and_product, benchmark2d=BENCHMARKS2d, pretraining=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
         expand(os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake3d'), 
                zip_and_product, benchmark3d=BENCHMARKS3d, pretraining=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
-        expand(os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake_all_mito'), 
-               zip_and_product, benchmark_all_mito=BENCHMARKS_ALL_MITO, pretraining=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS)
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark_mixed}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake_mixed'), 
+               zip_and_product, benchmark_mixed=BENCHMARKS_MIXED, pretraining=list(PRETRAINING_LOOKUP.keys()), finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS)
         
 rule train:
     input:
@@ -123,11 +123,11 @@ rule inference3d:
     script:
         os.path.join(SCRIPT_PATH, 'inference3d.py')
         
-rule inference_all_mito:
+rule inference_mixed:
     input:
-        os.path.join(CONFIG_DIR, '{benchmark_all_mito}.yaml'),
-        os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+        os.path.join(CONFIG_DIR, '{benchmark_mixed}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark_mixed}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
     output:
-        os.path.join(BASE_MODEL_DIR, '{benchmark_all_mito}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake_all_mito')
+        os.path.join(BASE_MODEL_DIR, '{benchmark_mixed}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth.snakemake_mixed')
     script:
-        os.path.join(SCRIPT_PATH, 'inference_all_mito.py')
+        os.path.join(SCRIPT_PATH, 'inference_mixed.py')
