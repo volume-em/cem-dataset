@@ -9,4 +9,4 @@ sbcmd="sbatch --partition={cluster.partition} --gres={cluster.gres} --mem={clust
 --cpus-per-task={cluster.cpus} --time={cluster.time}"
 
 #spawn the jobs, change the number of jobs for potentially faster execution
-snakemake -pr --jobs 7 --cluster-config cluster.json --cluster "$sbcmd" --latency-wait 120 all
+snakemake -s snakefile_wq -pr --jobs 7 --cluster-config cluster.json --cluster "$sbcmd" --latency-wait 120 all
