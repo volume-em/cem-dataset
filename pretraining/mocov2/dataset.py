@@ -12,11 +12,10 @@ class EMData(Dataset):
     Dataset class for loading and augmenting unsupervised data.
     """
     
-    def __init__(self, fpaths_dask_array, tfs, fixed_seed=None):
+    def __init__(self, fpaths_dask_array, tfs):
         super(EMData, self).__init__()
         self.fpaths_dask_array = fpaths_dask_array
         self.tfs = tfs
-        self.fixed_seed = fixed_seed
         
         self.fpaths = da.from_npy_stack(fpaths_dask_array)
         print(f'Loaded {fpaths_dask_array} with {len(self.fpaths)} tiff images')
@@ -30,11 +29,8 @@ class EMData(Dataset):
         
         #load the image and add an empty channel dim
         image = Image.open(f)
-        
-        #fix seed
-        if self.fixed_seed is not None:
-            random.seed(self.fixed_seed)
             
+        #transform the images
         image1 = self.tfs(image)
         image2 = self.tfs(image)
         

@@ -1,7 +1,7 @@
 #basic definitions
 experiment_name: "Filtered_CellEMNet_MoCoV2"
-data_file: "/data/IASEM/conradrw/data/retest/patches224_filtered/nn_filtered_fpaths.npz"
-model_dir: "/data/IASEM/conradrw/retest/models/Filtered_CellEMNet_MoCoV2/"
+data_file: # a .npz dask array of filepaths
+model_dir: # the directory in which to save model states
 arch: "resnet50"
 workers: 16
 epochs: 2

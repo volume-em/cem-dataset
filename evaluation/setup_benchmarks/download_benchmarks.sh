@@ -5,7 +5,7 @@ set -e
 dir_prefix=$1
 
 if [ ! -d $dir_prefix ] && echo "Directory ${dir_prefix} DOES NOT exists."; then
-    mkdir $dir_prefix
+    mkdir -p $dir_prefix
 fi
 
 lucchi_dir="${dir_prefix}/lucchi_pp/"

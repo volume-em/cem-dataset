@@ -35,11 +35,10 @@ import torch.utils.data.distributed
 import torchvision.models as models
 import torchvision.transforms as tf
 
-import builder
-from dataset import EMData, GaussianBlur, GaussNoise
-from pretraining.resnet import resnet50
+import mocov2.builder as builder
+from mocov2.dataset import EMData, GaussianBlur, GaussNoise
+from resnet import resnet50
 
-#my imports 
 import mlflow
 
 model_names = sorted(name for name in models.__dict__
@@ -49,30 +48,24 @@ model_names = sorted(name for name in models.__dict__
 def parse_args():
     parser = argparse.ArgumentParser(description='PyTorch MoCo Training')
     parser.add_argument('config', help='Path to .yaml training config file')
-    
-    #return the arguments converted to a dictionary
+
     return vars(parser.parse_args())
 
 
 def main():
-    #parse arguments
     args = parse_args()
     
-    #load the config file
     with open(args['config'], 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
         
-    #add the path to the config file for archiving
     config['config_file'] = args['config']
 
     #world size is the number of processes that will run
     if config['dist_url'] == "env://" and config['world_size'] == -1:
         config['world_size'] = int(os.environ["WORLD_SIZE"])
 
-    #boolean set to True if the training will be distributed over multiple GPUs
     config['distributed'] = config['world_size'] > 1 or config['multiprocessing_distributed']
 
-    #count the number of GPUs on the machine
     ngpus_per_node = torch.cuda.device_count()
     config['ngpus_per_node'] = ngpus_per_node
     if config['multiprocessing_distributed']:
@@ -109,7 +102,7 @@ def main_worker(gpu, ngpus_per_node, config):
             
         dist.init_process_group(backend=config['dist_backend'], init_method=config['dist_url'],
                                 world_size=config['world_size'], rank=config['rank'])
-    # create model
+
     print("=> creating model '{}'".format(config['arch']))
     
     #hardcoding the resnet50 for the time being
@@ -146,7 +139,6 @@ def main_worker(gpu, ngpus_per_node, config):
         # this code only supports DistributedDataParallel.
         raise NotImplementedError("Only DistributedDataParallel is supported.")
 
-    # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(config['gpu'])
 
     optimizer = torch.optim.SGD(model.parameters(), config['lr'],
@@ -177,13 +169,10 @@ def main_worker(gpu, ngpus_per_node, config):
     cudnn.benchmark = True
     
     #get the mean and standard deviation pixels from config
+    #and wrap them in lists for tf.Normalize to work
     norms = config['norms']
-    
-    #wrap them in lists for tf.Normalize to work
     mean_pixel = norms['mean']
     std_pixel = norms['std']
-        
-    #set normalization parameter
     normalize = tf.Normalize(mean=[mean_pixel], std=[std_pixel])
 
     #for now, these augmentations are hardcoded. torchvision
@@ -202,7 +191,6 @@ def main_worker(gpu, ngpus_per_node, config):
         normalize
     ])
 
-    #create the training dataset
     train_dataset = EMData(config['data_file'], augmentation)
 
     if config['distributed']:
@@ -220,15 +208,7 @@ def main_worker(gpu, ngpus_per_node, config):
         
         #end any old runs
         mlflow.end_run()
-            
-        #extract the experiment name from config so that
-        #we know where to save our files, if experiment name
-        #already exists, we'll use it, otherwise we create a
-        #new experiment
         mlflow.set_experiment(config['experiment_name'])
-        
-        #add the config file as an artifact, to make it
-        #easy to reproduce every run
         mlflow.log_artifact(config['config_file'])
 
         #we don't want to add everything in the config
@@ -286,7 +266,6 @@ def train(train_loader, model, criterion, optimizer, epoch, config):
         [batch_time, data_time, losses, top1, top5],
         prefix="Epoch: [{}]".format(epoch))
 
-    # switch to train mode
     model.train()
 
     end = time.time()

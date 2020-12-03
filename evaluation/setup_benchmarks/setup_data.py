@@ -4,7 +4,7 @@ import numpy as np
 from skimage.io import imread, imsave
 from glob import glob
 from skimage.transform import resize
-#from h5py import File
+from h5py import File
 
 def parse_args():
     #setup the argument parser

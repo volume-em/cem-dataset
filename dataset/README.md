@@ -16,7 +16,7 @@ Deduplication uses the deduplicated/deduplicate.py script. As input the script e
 
 1. Run deduplicated/deduplicate.py on *raw_save_dir*. Save results, which are .npy files for each 2d/3d dataset that contain a list of filepaths for exemplar images, to *deduplicated_save_dir*.
 
-The addition to .npy files for each datasets, the script also outputs a dask array file called deduplicated_fpaths.npz that contains the list of file paths for exemplar images from all 2d/3d datasets. This collection of file paths defines the *Deduplicated* dataset.
+In addition to .npy files for each datasets, the script also outputs a dask array file called deduplicated_fpaths.npz that contains the list of file paths for exemplar images from all 2d/3d datasets. This collection of file paths defines the *Deduplicated* dataset.
 
 In the last curation step, uninformative patches are filtered out using a ResNet34 classifier. The filtered/train_nn.py script trains the classifier on a collection of manually labeled image files contained in deduplicated_fpaths.npz. It is assumed that the labeling was performed using the labeling.ipynb notebook included in this repository. In general, training a new classifier shouldn't be necessary; we release the weights for the classifer that we trained on 12,000 labeled images. The filtered/classify_nn.py script performs inference on the set of unlabeled images in deduplicated_fpaths.npz. By default, the script will download and use the weights that we released. In summary:
 

@@ -94,7 +94,7 @@ if __name__ == '__main__':
         config_dict[f'instance_match{benchmark_dim}'] = instance_match2d
         config_dict[f'mask_prediction{benchmark_dim}'] = mask_prediction3d
                 
-        tmp_yaml_file = f'{script_dir}/.tmp_mixed_config_{benchmark}.yaml'
+        tmp_yaml_file = f'{script_dir}/.tmp_mixed_config.yaml'
         with open(tmp_yaml_file, 'w') as f:
             yaml.dump(config_dict, f)
             
