@@ -1,0 +1,13 @@
+name: cellem
+channels:
+  - defaults
+dependencies:
+  - torchaudio
+  - pytorch
+  - torchvision
+  - albumentations
+  - h5py
+  - mlflow
+  - simpleitk
+  - scikit-learn
+prefix: /data/conradrw/conda/envs/cellem
