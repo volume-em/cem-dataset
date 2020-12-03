@@ -1,6 +1,6 @@
 # Benchmark Evaluation
 
-## Getting Started
+## Setup the Benchmark Data
 
 Download and preprocess the benchmark datasets:
 
@@ -9,6 +9,8 @@ python setup_benchmarks/setup_data.py {save_dir}
 ```
 
 Each benchmark has a corresponding .yaml config file in the benchmark_configs directory. The config files set directories and training and inference parameters. Running the setup_data.py script will fill in the directories automatically for each benchmark based on the chosen {save_dir}.
+
+## Manual Evaluation
 
 The finetune.py script handles all model training and result logging. The only required argument is the path to a config file:
 
@@ -41,7 +43,7 @@ mlflow ui
 
 The dashboard is grouped by benchmarks and records both training and inference results along with all the hyperparameters used for a run. This makes it easy to compare and reproduce results. For more details about mlflow see [here](https://mlflow.org/docs/latest/index.html).
 
-## Snakemake Pipelines
+## Snakemake Evaluation Pipelines
 
 The fastest way to evaluate results on the benchmarks is to use the provided [snakemake](https://snakemake.readthedocs.io/en/stable/) files. Simply run:
 
