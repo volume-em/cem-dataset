@@ -5,7 +5,7 @@ class_names:
   - "mito"
 
 #set the directories for data and models
-data_dir: "/data/conradrw/benchmarks/all_mito/"
+data_dir: #will be filled by the setup_data.py script
 model_dir: "/data/conradrw/models/"
 
 #whether to log the run in MLFlow
@@ -102,7 +102,7 @@ augmentations:
   
   
 ###INFERENCE SECTION###
-test_dir: "/data/conradrw/benchmarks/all_mito/test/"
+test_dir: #will be filled by the setup_data.py script
 benchmark_names:
   - "perez_mito"
   - "kasthuri_pp"

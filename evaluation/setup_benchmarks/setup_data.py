@@ -1,10 +1,10 @@
-import os, subprocess, argparse, shutil
+import os, subprocess, argparse, shutil, yaml
 import SimpleITK as sitk
 import numpy as np
 from skimage.io import imread, imsave
 from glob import glob
 from skimage.transform import resize
-from h5py import File
+#from h5py import File
 
 def parse_args():
     #setup the argument parser
@@ -18,9 +18,10 @@ if __name__ == '__main__':
     #parse the save directory
     args = parse_args()
     save_dir = args['save_dir']
-
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    
     #run the download_benchmarks.sh script
-    download_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'download_benchmarks.sh')
+    download_script = os.path.join(script_dir, 'download_benchmarks.sh')
     command = f'bash {download_script} {save_dir}'
     subprocess.call(command.split(' '))
     
@@ -346,4 +347,42 @@ if __name__ == '__main__':
                 mito_vol = sitk.Cast(labelmap, sitk.sitkUInt8)
             
             #save the result
-            sitk.WriteImage(mito_vol, msk_dst_dir + fname)
+            sitk.WriteImage(mito_vol, msk_dst_dir + fname)       
+    
+    #overwrite the data and test directories in each benchmarks' yaml file
+    benchmarks = ['all_mito', 'cremi', 'guay', 'kasthuri_pp', 'lucchi_pp', 
+                  'perez_lyso', 'perez_mito', 'perez_nuclei', 'perez_nucleoli', 'urocell']
+    data_dirs = ['all_mito/', 'cremi/2d/', 'guay/2d/', 'kasthuri_pp/', 'lucchi_pp/',
+                 'perez/lyso/', 'perez/mito/', 'perez/nuclei/', 'perez/nucleoli/', 'urocell/2d/']
+    test_dirs = ['all_mito/test/', 'cremi/3d/test/', 'guay/3d/test/', 'kasthuri_pp/test/', 'lucchi_pp/test/', 'perez/lyso/test/',
+                 'perez/mito/test/', 'perez/nuclei/test/', 'perez/nucleoli/test/', 'urocell/3d/test/']
+    
+    config_dir = os.path.join(script_dir, '../benchmark_configs/')
+    
+    #overwrite the data_dir and test_dir lines to match
+    #the directories created in this setup script
+    for bmk, dd, td in zip(benchmarks, data_dirs, test_dirs):
+        with open(os.path.join(config_dir, f'{bmk}.yaml'), mode='r') as f:
+            lines = f.read().splitlines()
+            data_dir_ln = -1
+            test_dir_ln = -1
+            test_dir_name = 'test_dir'
+            for ix, l in enumerate(lines):
+                if l.startswith('data_dir:'):
+                    data_dir_ln = ix
+                elif l.startswith('test_dir2d:'):
+                    test_dir_ln = ix
+                    test_dir_name = 'test_dir2d'
+                elif l.startswith('test_dir3d:'):
+                    test_dir_ln = ix
+                    test_dir_name = 'test_dir3d'
+                elif l.startswith('test_dir:'):
+                    test_dir_ln = ix
+                    test_dir_name = 'test_dir'
+
+            lines[data_dir_ln] = 'data_dir: ' + '"' + os.path.join(save_dir, dd) + '"'
+            lines[test_dir_ln] = f'{test_dir_name}: ' + '"' + os.path.join(save_dir, td) + '"'
+            lines = '\n'.join(lines)
+
+        with open(os.path.join(config_dir, f'{bmk}.yaml'), mode='w') as f:
+            f.write(lines)

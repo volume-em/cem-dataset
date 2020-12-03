@@ -5,7 +5,7 @@ class_names:
   - "synaptic_cleft"
 
 #set the directories for data and models
-data_dir: "/data/IASEM/conradrw/data/benchmarks/cremi/2d/"
+data_dir: #will be filled by the setup_data.py script
 model_dir: "/data/conradrw/models/"
 
 #whether to log the run in MLFlow
@@ -99,7 +99,7 @@ augmentations:
   - aug: "VerticalFlip"
   
 ###INFERENCE SECTION 3D###
-test_dir3d: "/data/conradrw/benchmarks/cremi/3d/test/"
+test_dir3d: #will be filled by the setup_data.py script
 mode3d: "stack"
 threshold3d: 0.5
 eval_classes3d:

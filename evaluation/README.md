@@ -8,7 +8,7 @@ Download and preprocess the benchmark datasets:
 python setup_benchmarks/setup_data.py {save_dir}
 ```
 
-Each benchmark has a corresponding .yaml config file in the benchmark_configs directory. The config files set directories and training and inference parameters. For now, you'll need to fill in the directories for each benchmark manually after downloading the datasets. (There are only 3 per config file: data_dir, model_dir, test_dir).
+Each benchmark has a corresponding .yaml config file in the benchmark_configs directory. The config files set directories and training and inference parameters. Running the setup_data.py script will fill in the directories automatically for each benchmark based on the chosen {save_dir}.
 
 The finetune.py script handles all model training and result logging. The only required argument is the path to a config file:
 
@@ -16,15 +16,15 @@ The finetune.py script handles all model training and result logging. The only r
 python finetune.py benchmark_configs/all_mito.yaml
 ```
 
-The finetune script outputs a state file which is saved in the model_dir defined in the config file. By default the file name is in the format:
-{benchmark_name}-{pretraining}_ft_{finetune_layer}_epoch{epoch}_of_{total_epochs}.pth'
+The finetune script outputs a state file which is saved in the model_dir defined in the config file (models/ by default). The file name is in the format:
+```{benchmark_name}-{pretraining}_ft_{finetune_layer}_epoch{epoch}_of_{total_epochs}.pth```
 where epoch and total_epochs may refer to training iterations depending on the given learning rate policy (iterations for Poly and OneCycle, epochs for MultiStep).
 
 To run inference, first determine the dimensionality of the test set (e.g. is the test set all 2D images or all 3D volumes?). Pick the inference script accordingly. Required arguments are a config file and a model state file. For example:
 
 ```
-python inference2d.py perez_mito.yaml {model_dir}/perez_mito-cellemnet_mocov2_ft_none_epoch1000_of_1000.pth
-python inference3d.py urocell.yaml {model_dir}/urocell-cellemnet_mocov2_ft_none_epoch1000_of_1000.pth
+python inference2d.py perez_mito.yaml models/perez_mito-cellemnet_mocov2_ft_none_epoch1000_of_1000.pth
+python inference3d.py urocell.yaml models/urocell-cellemnet_mocov2_ft_none_epoch1000_of_1000.pth
 ```
 
 The one exception is the All Mitochondria benchmark in which the test set consists of both 2D and 3D data and a mishmash of evaluation protocols. To handle all these cases, the benchmark uses a custom inference script which can be run with:
@@ -55,7 +55,7 @@ or
 snakemake -s snakefile_dq
 ```
 
-We used snakefile_wq to train models with different initialization methods (random init., imagenet_supervised, cellemnet_mocov2) and snakefile_dq to compare models pretrained with the mocov2 algorithm on different EM datasets. 
+We used snakefile_wq to train models with different initialization methods (random init., imagenet_supervised, cellemnet_mocov2) and snakefile_dq to compare models pretrained with the mocov2 algorithm on different EM datasets. The snakefiles include a few parameters like training iterations and pretraining that can be used to overwrite the definitions in a config file.
 
 
 ## Adding new benchmarks
