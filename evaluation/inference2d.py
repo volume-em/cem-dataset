@@ -153,8 +153,7 @@ if __name__ == '__main__':
     #2. How many input channels? Get it from the length of the norms
     #3. How many output channels? Get it from size of the last
     #parameter in the state_dict (the output bias tensor)
-    #norms = state['norms']
-    norms = [0.58331613, 0.09966064]
+    norms = state['norms']
     
     #if there are multiple channels, the mean and std will
     #be lists, otherwise their just single floats
