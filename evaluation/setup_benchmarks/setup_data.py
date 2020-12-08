@@ -22,6 +22,9 @@ if __name__ == '__main__':
     
     #run the download_benchmarks.sh script
     download_script = os.path.join(script_dir, 'download_benchmarks.sh')
+    create_slices_script = os.path.join(script_dir, 'create_slices.py')
+    create_patches_script = os.path.join(script_dir, 'create_patches.py')
+
     command = f'bash {download_script} {save_dir}'
     subprocess.call(command.split(' '))
     
@@ -66,9 +69,7 @@ if __name__ == '__main__':
             #take the first channel only (all 3 are the same anyway)
             if mask.ndim == 3:
                 mask = mask[..., 0]
-                
-            print(mask.max(), mask.min())
-                
+                                
             #background padding values are non-zero
             #dividing by 255 rounds them down to zero
             mask = (mask / 255).astype(np.uint8)
@@ -82,7 +83,6 @@ if __name__ == '__main__':
     
     #process all the images in one big group
     perez_fpaths = glob(os.path.join(save_dir, f'perez/*/*/*/*.png')) #e.g. perez/mito/train/images/*.png
-    print(f'Perez {len(perez_fpaths)}')
     for fp in perez_fpaths:
         orig_name = fp.split('/')[-1]
         prefix = orig_name.split('.')[0]
@@ -142,7 +142,7 @@ if __name__ == '__main__':
         #call the create_slices.py script to save results in the guay/2d folder
         setname = ip.split('/')[-3] #.../guay/3d/train/images/train-images.tif --> train
         slice_dir = os.path.join(save_dir, f'guay/2d/{setname}/')
-        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 2 -s 1'
+        command = f'python {create_slices_script} {ip} {mp} {slice_dir} -a 2 -s 1'
         subprocess.call(command.split(' '))
 
     #now onto UroCell:
@@ -198,7 +198,7 @@ if __name__ == '__main__':
         #call the create_slices.py script to save results in the urocell/2d folder
         setname = ip.split('/')[-3] #.../urocell/3d/train/images/fib1-4-3-0.nii.gz --> train
         slice_dir = os.path.join(save_dir, f'urocell/2d/{setname}/')
-        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 0 1 2 -s 1'
+        command = f'python {create_slices_script} {ip} {mp} {slice_dir} -a 0 1 2 -s 1'
         subprocess.call(command.split(' '))
         
     #next we're going to handle CREMI
@@ -242,7 +242,7 @@ if __name__ == '__main__':
         #call the create_slices.py script to save results in the cremi/2d folder
         setname = ip.split('/')[-3] #.../cremi/3d/train/images/sampleA.nrrd --> train
         slice_dir = os.path.join(save_dir, f'cremi/2d/{setname}/')
-        command = f'python create_slices.py {ip} {mp} {slice_dir} -a 2 -s 1'
+        command = f'python {create_slices_script} {ip} {mp} {slice_dir} -a 2 -s 1'
         subprocess.call(command.split(' '))
     
     #finally, let's make the All Mitochondria dataset
@@ -266,10 +266,10 @@ if __name__ == '__main__':
     benchmarks = ['perez/mito', 'lucchi_pp', 'kasthuri_pp', 'urocell/2d', 'guay/2d']
     benchmark_mito_labels = [1, 1, 1, 2, 2]
     for l, bmk in zip(benchmark_mito_labels, benchmarks):
-        command = f'python create_patches.py {save_dir}/{bmk}/train/images/ {save_dir}/all_mito/train/images/'
+        command = f'python {create_patches_script} {save_dir}/{bmk}/train/images/ {save_dir}/all_mito/train/images/'
         subprocess.call(command.split(' '))
         
-        command = f'python create_patches.py {save_dir}/{bmk}/train/masks/ {save_dir}/all_mito/train/masks/ -l {l}'
+        command = f'python {create_patches_script} {save_dir}/{bmk}/train/masks/ {save_dir}/all_mito/train/masks/ -l {l}'
         subprocess.call(command.split(' '))
 
     #remove any blank images and their corresponding masks

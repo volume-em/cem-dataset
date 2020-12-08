@@ -5,8 +5,8 @@ class_names:
   - "mito"
 
 #set the directories for data and models
-data_dir: #will be filled by the setup_data.py script
-model_dir: "/data/conradrw/models/"
+data_dir: #filled in after running setup_data.py
+model_dir: "models/"
 
 #whether to log the run in MLFlow
 #either True or False
@@ -62,7 +62,7 @@ lr_decay_epochs:
 #set pixel norm values
 norms:
     mean: 0.35009244
-    stdev: 0.01705255
+    std: 0.01705255
   
 #currently only IoU is supported
 metrics:
@@ -96,7 +96,7 @@ augmentations:
   - aug: "VerticalFlip"
   
 ###INFERENCE SECTION 2D###
-test_dir2d: #will be filled by the setup_data.py script
+test_dir2d: #filled in after running setup_data.py
 threshold2d: 0.5
 instance_match2d: False
 eval_classes2d:

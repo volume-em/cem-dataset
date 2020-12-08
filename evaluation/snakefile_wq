@@ -24,7 +24,7 @@ SCRIPT_PATH = ''
 
 #directories for each benchmark will be
 #created in this directory
-BASE_MODEL_DIR = 'models/weight_quality/'
+BASE_MODEL_DIR = '/data/conradrw/models/weight_quality/'
 
 #let's make the model path
 if not os.path.isdir(BASE_MODEL_DIR):
@@ -32,8 +32,8 @@ if not os.path.isdir(BASE_MODEL_DIR):
 
 #the finetune layers are zipped together with pretrainings
 #such that they form pairs like (random_init, all), (imagenet_supervised, none), etc.
-PRETRAININGS = ['random_init', 'imagenet_supervised', 'imagenet_mocov2', 'cellemnet_mocov2']
-FINETUNE_LAYERS = ['all', 'none', 'none', 'none']
+PRETRAININGS = ['random_init', 'imagenet_supervised', 'imagenet_mocov2']#, 'cellemnet_mocov2']
+FINETUNE_LAYERS = ['all', 'none', 'none']#, 'none']
 
 #group the benchmarks by their dimensionality
 #the all_mito benchmark has it's own group
@@ -86,8 +86,8 @@ rule train:
         #below to equal None
         md = os.path.join(BASE_MODEL_DIR), #directory to save benchmark model states
         n = lambda wildcards: int(wildcards.iters), #number of training iterations
-        ft = '{finetune_layer}',
-        pf = None
+        ft = '{finetune_layer}',  
+        pf = '{pretraining}'
     output:
         os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
     script:

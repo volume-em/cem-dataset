@@ -7,7 +7,7 @@ class_names:
   - "mito"
   
 #set the directories for data and models
-data_dir: #will be filled by the setup_data.py script
+data_dir: #filled in after running setup_data.py
 model_dir: "models/"
 
 #pixel norm values for the training dataset
@@ -74,7 +74,7 @@ momentum: 0.9
 
 #iterations are used for Poly and OneCycle,
 #epochs are used for MultiStep
-iters: 5000
+iters: 2500
 
 #parameters specific for Poly lr_policy
 power: 0.9
@@ -112,7 +112,7 @@ augmentations:
   - aug: "VerticalFlip"
   
 ###INFERENCE SECTION 3D###
-test_dir3d: #will be filled by the setup_data.py script
+test_dir3d: #filled in after running setup_data.py
 mode3d: "orthoplane"
 threshold3d: 0.5
 eval_classes3d:
