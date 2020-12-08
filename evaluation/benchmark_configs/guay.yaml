@@ -20,8 +20,8 @@ class_weights:
   - 3
 
 #set the directories for data and models
-data_dir: #will be filled by the setup_data.py script
-model_dir: "/data/conradrw/models/"
+data_dir: #filled in after running setup_data.py
+model_dir: "models/"
 
 #whether to log the run in MLFlow
 #either True or False
@@ -117,7 +117,7 @@ augmentations:
   - aug: "VerticalFlip"
   
 ###INFERENCE SECTION 3D###
-test_dir3d: #will be filled by the setup_data.py script
+test_dir3d: #filled in after running setup_data.py
 mode3d: "stack"
 threshold3d: 0.5
 eval_classes3d:

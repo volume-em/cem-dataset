@@ -5,8 +5,8 @@ class_names:
   - "mito"
 
 #set the directories for data and models
-data_dir: #will be filled by the setup_data.py script
-model_dir: "/data/conradrw/models/"
+data_dir: #filled in after running setup_data.py
+model_dir: "models/"
 
 #whether to log the run in MLFlow
 #either True or False
@@ -47,7 +47,7 @@ momentum: 0.9
 
 #iterations are used for Poly and OneCycle,
 #epochs are used for MultiStep
-iters: 5000
+iters: 10000
 
 #parameters specific for Poly lr_policy
 power: 0.9
@@ -102,7 +102,7 @@ augmentations:
   
   
 ###INFERENCE SECTION###
-test_dir: #will be filled by the setup_data.py script
+test_dir: #filled in after running setup_data.py
 benchmark_names:
   - "perez_mito"
   - "kasthuri_pp"
