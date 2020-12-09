@@ -61,7 +61,7 @@ lr_decay_epochs:
 #pixel norm valuesfor the dataset
 norms:
   mean: 0.555664
-  stdev: 0.09931
+  std: 0.09931
   
 #currently only IoU is supported
 metrics:
