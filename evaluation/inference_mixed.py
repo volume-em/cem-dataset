@@ -25,7 +25,7 @@ if __name__ == '__main__':
         args = snakemake_args()
         #because snakemake expects an output file
         #we'll make a dummy file here
-        with open(args['state_path'] + '.snakemake_all_mito', mode='w') as f:
+        with open(args['state_path'] + '.snakemake_mixed', mode='w') as f:
             f.write("This is dummy file for snakemake")
     else:
         args = parse_args()
