@@ -32,8 +32,8 @@ if not os.path.isdir(BASE_MODEL_DIR):
 
 #the finetune layers are zipped together with pretrainings
 #such that they form pairs like (random_init, all), (imagenet_supervised, none), etc.
-PRETRAININGS = ['random_init', 'imagenet_supervised', 'imagenet_mocov2']#, 'cellemnet_mocov2']
-FINETUNE_LAYERS = ['all', 'none', 'none']#, 'none']
+PRETRAININGS = ['random_init', 'imagenet_supervised', 'imagenet_mocov2', 'cellemnet_mocov2']
+FINETUNE_LAYERS = ['all', 'none', 'none', 'none']
 
 #group the benchmarks by their dimensionality
 #the all_mito benchmark has it's own group
