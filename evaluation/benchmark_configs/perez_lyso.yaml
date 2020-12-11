@@ -97,7 +97,7 @@ augmentations:
 ###INFERENCE SECTION 2D###
 test_dir2d: #filled in after running setup_data.py
 threshold2d: 0.5
-instance_match2d: False
+instance_match2d: True
 eval_classes2d:
   - 1
 save_dir2d: null
