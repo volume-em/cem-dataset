@@ -39,7 +39,7 @@ The dataset is currently awaiting deposition on EMPIAR. Updates on the ID and do
 ## Citing this work
 
 Please cite this work.
-
+```
 @article {Conrad2020.12.11.421792,
 	author = {Conrad, Ryan W and Narayan, Kedar},
 	title = {CEM500K - A large-scale heterogeneous unlabeled cellular electron microscopy image dataset for deep learning.},
@@ -51,3 +51,4 @@ Please cite this work.
 	eprint = {https://www.biorxiv.org/content/early/2020/12/11/2020.12.11.421792.full.pdf},
 	journal = {bioRxiv}
 }
+```
