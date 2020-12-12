@@ -32,7 +32,7 @@ Otherwise, required dependencies can be installed with another package manager (
     <li>imagehash</li>
 </ul>  
 
-## Download the Dataset
+## Download CEM500K
 
 The dataset is currently awaiting deposition on EMPIAR. Updates on the ID and download instructions coming soon.
 
