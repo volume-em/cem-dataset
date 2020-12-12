@@ -18,7 +18,7 @@ cd cellemnet
 conda env create -f environment.yml
 ```
 
-Otherwise, required dependencies can be install with another package manager (pip):
+Otherwise, required dependencies can be installed with another package manager (pip):
 
 <ul>
     <li>pytorch</li>
