@@ -2,7 +2,7 @@
 
 ## MoCoV2
 
-To run pretraining you'll need to have downloaded the CellEMNet data. Update the data_file and model_dir parameters in the mocov2_config.yaml file. Then run:
+To run pretraining you'll need to have downloaded the CEM500K data. Update the data_file and model_dir parameters in the mocov2_config.yaml file. Then run:
 
 ```
 python train_mocov2.py mocov2_config.yaml
