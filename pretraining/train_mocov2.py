@@ -306,8 +306,8 @@ def train(train_loader, model, criterion, optimizer, epoch, config):
     if config['rank'] % config['ngpus_per_node'] == 0:
         # store metrics to mlflow
         mlflow.log_metric('ins_loss', losses.avg, step=epoch)
-        mlflow.log_metric('top1_prob', top1.avg, step=epoch)
-        mlflow.log_metric('top5_prob', top5.avg, step=epoch)
+        mlflow.log_metric('top1_prob', top1.avg.item(), step=epoch)
+        mlflow.log_metric('top5_prob', top5.avg.item(), step=epoch)
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
