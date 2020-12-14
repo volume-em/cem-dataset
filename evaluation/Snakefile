@@ -1,0 +1,144 @@
+"""
+SnakeFile for reproducing results with best performing hyperparameters.
+
+Initializations to test:
+     - random_init
+     - imagenet_supervised
+     - imagenet_mocov2
+     - cellemnet_mocov2
+     
+The finetune.py script, by default, saves state files with the format:
+
+{model_directory}/{benchmark_name}-{pretraining}_ft_{finetune_layer}_epoch{epoch}_of_{total_epochs}.pth'
+
+where epoch and total_epochs may refer to training iterations depending on the given
+learning rate policy (iterations for Poly and OneCycle, epochs for MultiStep)
+
+"""
+import os, yaml
+from itertools import product
+
+#location of the finetune and inference scripts
+SCRIPT_PATH = ''
+
+#directories for each benchmark will be
+#created in this directory
+BASE_MODEL_DIR = '/data/conradrw/models/weight_quality1/'
+
+#let's make the model path
+if not os.path.isdir(BASE_MODEL_DIR):
+    os.makedirs(BASE_MODEL_DIR)
+
+#the finetune layers are zipped together with pretrainings
+#such that they form pairs like (random_init, all), (imagenet_supervised, none), etc.
+PRETRAININGS = ['random_init', 'imagenet_supervised', 'imagenet_mocov2', 'cellemnet_mocov2']
+FINETUNE_LAYERS = ['all', 'none', 'none', 'none']
+
+#group the benchmarks by their dimensionality
+#the all_mito benchmark has it's own group
+BENCHMARKS2d = ['lucchi_pp', 'kasthuri_pp', 'perez_lyso', 
+                'perez_mito', 'perez_nuclei', 'perez_nucleoli']
+BENCHMARKS3d = ['guay', 'urocell', 'cremi']
+BENCHMARKS_MIXED = ['all_mito']
+BENCHMARKS = BENCHMARKS2d + BENCHMARKS3d + BENCHMARKS_MIXED
+
+#directory with the benchmark configuration files
+CONFIG_DIR = 'benchmark_configs/'
+
+#for testing training speed use multiple training iterations
+#this will produce a lot of models though
+#ITERATIONS = [100, 500, 1000, 2500, 5000, 10000]
+
+#build iterations list from config files
+ITERATIONS2d = []
+for bnk in BENCHMARKS2d:
+    config_file = os.path.join(CONFIG_DIR, f'{bnk}.yaml')
+    with open(config_file, 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    ITERATIONS2d.append(config['iters'])
+    
+ITERATIONS3d = []
+for bnk in BENCHMARKS3d:
+    config_file = os.path.join(CONFIG_DIR, f'{bnk}.yaml')
+    with open(config_file, 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    ITERATIONS2d.append(config['iters'])
+    
+ITERATIONS_MIXED = []
+for bnk in BENCHMARKS_MIXED:
+    config_file = os.path.join(CONFIG_DIR, f'{bnk}.yaml')
+    with open(config_file, 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    ITERATIONS_MIXED.append(config['iters'])
+        
+ITERATIONS = ITERATIONS2d + ITERATIONS3d + ITERATIONS_MIXED
+
+def zip_and_product(*iterables):
+    #first we're going to zip together the pretraining
+    #and finetune layers
+    ptft = zip(iterables[1], iterables[2])
+    #then the benchmarks and iterations
+    abc = zip(iterables[0], iterables[3])
+    
+    #now we take the product
+    wildcard_product = product(abc, ptft)
+    
+    #list all the products
+    out_product = []
+    for pr in list(wildcard_product):
+        out_product.append((pr[0][0], *pr[1],  pr[0][1]))
+
+    return iter(out_product)
+
+rule all:
+    input:
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth'), 
+               zip_and_product, benchmark=BENCHMARKS, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters=ITERATIONS),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters2d}_of_{iters2d}.pth.snakemake2d'), 
+               zip_and_product, benchmark2d=BENCHMARKS2d, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters2d=ITERATIONS2d),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters3d}_of_{iters3d}.pth.snakemake3d'), 
+               zip_and_product, benchmark3d=BENCHMARKS3d, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters3d=ITERATIONS3d),
+        expand(os.path.join(BASE_MODEL_DIR, '{benchmark_mixed}-{pretraining}_ft_{finetune_layer}_epoch{iters_mixed}_of_{iters_mixed}.pth.snakemake_mixed'), 
+               zip_and_product, benchmark_mixed=BENCHMARKS_MIXED, pretraining=PRETRAININGS, finetune_layer=FINETUNE_LAYERS, iters_mixed=ITERATIONS_MIXED)
+        
+rule train:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark}.yaml')
+    params:
+        #to use the parameters set in the config file instead, just set the parameters
+        #below to equal None
+        md = os.path.join(BASE_MODEL_DIR), #directory to save benchmark model states
+        n = lambda wildcards: int(wildcards.iters), #number of training iterations
+        ft = '{finetune_layer}',  
+        pf = None
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
+    script:
+        os.path.join(SCRIPT_PATH, 'finetune.py')
+
+rule inference2d:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark2d}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters2d}_of_{iters2d}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark2d}-{pretraining}_ft_{finetune_layer}_epoch{iters2d}_of_{iters2d}.pth.snakemake2d')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference2d.py')
+    
+rule inference3d:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark3d}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters3d}_of_{iters3d}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark3d}-{pretraining}_ft_{finetune_layer}_epoch{iters3d}_of_{iters3d}.pth.snakemake3d')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference3d.py')
+        
+rule inference_mixed:
+    input:
+        os.path.join(CONFIG_DIR, '{benchmark_mixed}.yaml'),
+        os.path.join(BASE_MODEL_DIR, '{benchmark_mixed}-{pretraining}_ft_{finetune_layer}_epoch{iters_mixed}_of_{iters_mixed}.pth')
+    output:
+        os.path.join(BASE_MODEL_DIR, '{benchmark_mixed}-{pretraining}_ft_{finetune_layer}_epoch{iters_mixed}_of_{iters_mixed}.pth.snakemake_mixed')
+    script:
+        os.path.join(SCRIPT_PATH, 'inference_mixed.py')
