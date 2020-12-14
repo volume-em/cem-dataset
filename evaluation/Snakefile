@@ -110,7 +110,7 @@ rule train:
         md = os.path.join(BASE_MODEL_DIR), #directory to save benchmark model states
         n = lambda wildcards: int(wildcards.iters), #number of training iterations
         ft = '{finetune_layer}',  
-        pf = None
+        pf = '{pretraining}'
     output:
         os.path.join(BASE_MODEL_DIR, '{benchmark}-{pretraining}_ft_{finetune_layer}_epoch{iters}_of_{iters}.pth')
     script:
