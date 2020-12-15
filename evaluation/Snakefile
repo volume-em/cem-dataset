@@ -62,7 +62,7 @@ for bnk in BENCHMARKS3d:
     config_file = os.path.join(CONFIG_DIR, f'{bnk}.yaml')
     with open(config_file, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    ITERATIONS2d.append(config['iters'])
+    ITERATIONS3d.append(config['iters'])
     
 ITERATIONS_MIXED = []
 for bnk in BENCHMARKS_MIXED:
