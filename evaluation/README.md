@@ -10,6 +10,28 @@ python setup_benchmarks/setup_data.py {save_dir}
 
 Each benchmark has a corresponding .yaml config file in the benchmark_configs directory. The config files set directories and training and inference parameters. Running the setup_data.py script will fill in the directories automatically for each benchmark based on the chosen {save_dir}.
 
+## Snakemake Evaluation Pipelines
+
+The fastest way to evaluate results on the benchmarks is to use the provided [snakemake](https://snakemake.readthedocs.io/en/stable/) files. To reproduce results using the best performing hyperaparameters that we found:
+
+```
+snakemake
+```
+
+Or to test different numbers of training iterations:
+
+```
+snakemake -s snakefile_wq
+```
+
+Or to test different pretrained weight files: 
+
+```
+snakemake -s snakefile_dq
+```
+
+The snakefile_wq and snakefile_dq include a few parameters like training iterations and pretrained weights that can be used to overwrite the default definitions in a config file.
+
 ## Manual Evaluation
 
 The finetune.py script handles all model training and result logging. The only required argument is the path to a config file:
@@ -42,22 +64,6 @@ mlflow ui
 ```
 
 The dashboard is grouped by benchmarks and records both training and inference results along with all the hyperparameters used for a run. This makes it easy to compare and reproduce results. For more details about mlflow see [here](https://mlflow.org/docs/latest/index.html).
-
-## Snakemake Evaluation Pipelines
-
-The fastest way to evaluate results on the benchmarks is to use the provided [snakemake](https://snakemake.readthedocs.io/en/stable/) files. Simply run:
-
-```
-snakemake -s snakefile_wq
-```
-
-or 
-
-```
-snakemake -s snakefile_dq
-```
-
-We used snakefile_wq to train models with different initialization methods (random init., imagenet_supervised, cellemnet_mocov2) and snakefile_dq to compare models pretrained with the mocov2 algorithm on different EM datasets. The snakefiles include a few parameters like training iterations and pretraining that can be used to overwrite the definitions in a config file.
 
 
 ## Adding new benchmarks
