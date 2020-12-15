@@ -244,7 +244,7 @@ class Trainer:
                 
                 #record the loss and evaluate metrics
                 self.trn_loss_meter.update(loss)
-                self.trn_metrics.evaluate(output.cpu(), masks.cpu())
+                self.trn_metrics.evaluate(output, masks)
                 
             #when we're at an eval_epoch we want to print
             #the training results so far and then evaluate
@@ -325,7 +325,7 @@ class Trainer:
                 output = self.model.eval()(images)
                 loss = self.criterion(output, masks)
                 self.val_loss_meter.update(loss.item())
-                self.val_metrics.evaluate(output.detach().cpu(), masks.cpu())
+                self.val_metrics.evaluate(output.detach(), masks)
                 
         #loss and metrics are updated inplace, so there's nothing to return
         return None
