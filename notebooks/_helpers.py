@@ -10,10 +10,10 @@ from skimage.transform import resize
 import torchvision.transforms as tf
 from torchvision.models import resnet50
 
-sys.path.append('../pretraining_moco/')
-from dataset import GaussianBlur, GaussNoise
-from builder import MoCo
+sys.path.append('../pretraining/')
 from resnet import resnet50 as moco_resnet50
+from mocov2.dataset import GaussianBlur, GaussNoise
+from mocov2.builder import MoCo
 
 CELLEMNET_WEIGHTS_URL = "https://www.dropbox.com/s/bqw4h2x23v3cgup/cellemnet_filtered_moco_v2_200ep.pth.tar?raw=1"
 IMAGENET_MOCO_WEIGHTS_URL = "https://dl.fbaipublicfiles.com/moco/moco_checkpoints/moco_v2_200ep/moco_v2_200ep_pretrain.pth.tar"
