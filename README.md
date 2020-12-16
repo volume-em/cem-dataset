@@ -21,7 +21,7 @@ conda env create -f environment.yml
 Otherwise, required dependencies can be installed with another package manager (pip):
 
 <ul>
-    <li>pytorch</li>
+    <li>torch</li>
     <li>torchvision</li>
     <li>segmentation-models-pytorch</li>
     <li>albumentations</li>
@@ -30,7 +30,13 @@ Otherwise, required dependencies can be installed with another package manager (
     <li>simpleitk</li>
     <li>scikit-learn</li>
     <li>imagehash</li>
-</ul>  
+</ul>
+
+## Download pre-trained weights
+
+Currently, pre-trained weights are only available for PyTorch. For an example of how to use them see ```evaluation/benchmark_configs```. Configuration files provide the option to use 'cellemnet_mocov2' as the pre-training.
+
+We're working to convert the weights for use with TensorFlow/Keras. If you have any experience with this kind of conversion and would like to help with testing, please open an issue.
 
 ## Download CEM500K
 
