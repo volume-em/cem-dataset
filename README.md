@@ -22,28 +22,29 @@ conda env create -f environment.yml
 ```
 
 Otherwise, required dependencies can be installed with another package manager (pip):
-
-<ul>
-    <li>torch</li>
-    <li>torchvision</li>
-    <li>segmentation-models-pytorch</li>
-    <li>albumentations</li>
-    <li>h5py</li>
-    <li>mlflow</li>
-    <li>simpleitk</li>
-    <li>scikit-learn</li>
-    <li>imagehash</li>
-</ul>
-
-## Download pre-trained weights
-
-Currently, pre-trained weights are only available for PyTorch. For an example of how to use them see ```evaluation/benchmark_configs```. Configuration files provide the option to use 'cellemnet_mocov2' as the pre-training.
-
-We're working to convert the weights for use with TensorFlow/Keras. If you have any experience with this kind of conversion and would like to help with testing, please open an issue.
+- torch
+- torchvision
+- segmentation-models-pytorch
+- albumentations
+- h5py
+- mlflow
+- simpleitk
+- scikit-learn
+- imagehash
 
 ## Download CEM500K
 
-The dataset is currently awaiting deposition on EMPIAR. Updates on the ID and download instructions coming soon.
+The CEM500K dataset, metadata and pretrained_weights are available through [EMPIAR ID 10592](https://www.ebi.ac.uk/pdbe/emdb/empiar/entry/10592/).
+
+## Use the pre-trained weights
+
+Currently, pre-trained weights are only available for PyTorch. For an example of how to use them see ```evaluation/benchmark_configs``` and ```notebooks/pretrained_weights.ipynb```.
+
+We're working to convert the weights for use with TensorFlow/Keras. If you have any experience with this kind of conversion and would like to help with testing, please open an issue.
+
+## Data Curation
+
+For image deduplication and filtering routines see the ```dataset``` directory README. Results on a small example 3D image volume can be reviewed in ```notebooks/deduplication_and_filtering.ipynb```.
 
 ## Citing this work
 
