@@ -11,7 +11,7 @@ Code for the paper: [CEM500K - A large-scale heterogeneous unlabeled cellular el
   <img align="left" src="./images/cem500k.jpg" width="250" height="250"></img>
 </figure>
 
-Typical EM datasets are created and shared to further biological research. Often that means that the sample size is n=1 (one instrument, one sample preparation protocol, one organism, one tissue, one cell line, etc.) and usually such datasets are hundreds of gigabytes to terabytes in size. For deep learning it is obviously true that a neural network trained on a dataset of 1,000 images from 1,000 different EM experiments will generalize better than the equivalent trained on 1,000 images from 1 EM experiment. CEM500K is an attempt to build a better dataset for deep learning by collecting and curating data from as many different EM experiments as possible. In total, we put together data from 102 unrelated EM experiments. Here's a breakdown of the biological details:
+Typical EM datasets are created and shared to further biological research. Often that means that the sample size is n=1 (one instrument, one sample preparation protocol, one organism, one tissue, one cell line, etc.) and usually such datasets are hundreds of gigabytes to terabytes in size. For deep learning it is obviously true that a neural network trained on a dataset of 100 images from 100 different EM experiments will generalize better than the equivalent trained on 100 images from 1 EM experiment. CEM500K is an attempt to build a better dataset for deep learning by collecting and curating data from as many different EM experiments as possible. In total, we put together data from 102 unrelated EM experiments. Here's a breakdown of the biological details:
 
 <figure>
   <img src="./images/description.png"></img>
