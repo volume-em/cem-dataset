@@ -5,6 +5,26 @@
 
 Code for the paper: [CEM500K - A large-scale heterogeneous unlabeled cellular electron microscopy image dataset for deep learning.](https://www.biorxiv.org/content/10.1101/2020.12.11.421792v1)
 
+## About the Dataset
+
+<figure>
+  <img align="left" src="./images/cem500k.jpg"></img>
+</figure>
+
+Typical EM datasets are created and shared to further biological research. Often that means that the sample size is n=1 (one instrument, one sample preparation protocol, one organism, one tissue, one cell line, etc.) and usually such datasets are hundreds of gigabytes to terabytes in size. For deep learning it is obviously true that a neural network trained on a dataset of 1,000 images from 1,000 different EM experiments will generalize better than the equivalent trained on 1,000 images from 1 EM experiment. CEM500K is an attempt to build a better dataset for deep learning by collecting and curating data from as many different EM experiments as possible. In total, we put together data from 102 unrelated EM experiments. Here's a breakdown of the biological details:
+
+<figure>
+  <img src="./images/description.png"></img>
+</figure>
+
+## About Pre-trained Models
+
+Using CEM500K for unsupervised pre-training, we demonstrated a significant improvement in the performance of a basic 2D U-Net on a number of 2D and 3D EM segmentation tasks. Models not only achieved better IoU scores, but also converged to solutions much more quickly (some models took only 45 seconds to train!). See ```evaluation``` for a quick and easy way to use the pre-trained weights.
+
+<figure>
+  <img src="./images/benchmarks.png", ></img>
+  <figcaption>Right: Example benchmark datasets. Left: IoU score improvements over random init. using CEM500K pre-trained weights (bottom row). See paper for more details.</figcaption>
+</figure>
 
 ## Getting Started
 
@@ -49,7 +69,7 @@ For image deduplication and filtering routines see the ```dataset``` directory R
 ## Citing this work
 
 Please cite this work.
-```
+```bibtex
 @article {Conrad2020.12.11.421792,
 	author = {Conrad, Ryan W and Narayan, Kedar},
 	title = {CEM500K - A large-scale heterogeneous unlabeled cellular electron microscopy image dataset for deep learning.},
