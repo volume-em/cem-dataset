@@ -17,9 +17,9 @@ Typical EM datasets are created and shared to further biological research. Often
   <img src="./images/description.png"></img>
 </figure>
 
-## About Pre-trained Models
+## About Pre-trained Weights
 
-Using CEM500K for unsupervised pre-training, we demonstrated a significant improvement in the performance of a basic 2D U-Net on a number of 2D and 3D EM segmentation tasks. Models not only achieved better IoU scores, but also converged to solutions much more quickly (some models took only 45 seconds to train!). See ```evaluation``` for a quick and easy way to use the pre-trained weights.
+Using CEM500K for unsupervised pre-training, we demonstrated a significant improvement in the performance of a 2D U-Net on a number of 2D AND 3D EM segmentation tasks. Pre-trained models not only achieved better IoU scores than random initialization, but also outperformed state-of-the-art results on all benchmarks for which comparison was possible. Even better CEM500K pre-training enabled models to converge much more quickly (some models took only 45 seconds to train!). See ```evaluation``` for a quick and easy way to use the pre-trained weights.
 
 <figure>
   <img src="./images/benchmarks.png", ></img>
