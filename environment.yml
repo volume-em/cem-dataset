@@ -1,14 +1,17 @@
 name: cellem
 channels:
   - defaults
+  - conda-forge
+  - simpleitk
 dependencies:
+  - pip
   - pytorch
   - torchvision
-  - albumentations
   - h5py
   - mlflow
   - simpleitk
   - scikit-learn
   - pip:
+    - albumentations
     - imagehash
     - segmentation-models-pytorch
