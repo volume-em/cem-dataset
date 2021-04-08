@@ -3,7 +3,7 @@
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/cem500k-a-large-scale-heterogeneous-unlabeled/electron-microscopy-image-segmentation-on-1)](https://paperswithcode.com/sota/electron-microscopy-image-segmentation-on-1?p=cem500k-a-large-scale-heterogeneous-unlabeled)
 
 
-Code for the paper: [CEM500K - A large-scale heterogeneous unlabeled cellular electron microscopy image dataset for deep learning.](https://www.biorxiv.org/content/10.1101/2020.12.11.421792v2)
+Code for the paper: [CEM500K, a large-scale heterogeneous unlabeled cellular electron microscopy image dataset for deep learning](https://elifesciences.org/articles/65894)
 
 ## About the Dataset
 
@@ -70,15 +70,15 @@ For image deduplication and filtering routines see the ```dataset``` directory R
 
 Please cite this work.
 ```bibtex
-@article {Conrad2020.12.11.421792,
-	author = {Conrad, Ryan W and Narayan, Kedar},
-	title = {CEM500K - A large-scale heterogeneous unlabeled cellular electron microscopy image dataset for deep learning.},
-	elocation-id = {2020.12.11.421792},
-	year = {2020},
-	doi = {10.1101/2020.12.11.421792},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2020/12/11/2020.12.11.421792},
-	eprint = {https://www.biorxiv.org/content/early/2020/12/11/2020.12.11.421792.full.pdf},
-	journal = {bioRxiv}
+@article {Conrad2021,
+	author = {Conrad, Ryan and Narayan, Kedar},
+	doi = {10.7554/eLife.65894},
+	issn = {2050-084X},
+	journal = {eLife},
+	month = {apr},
+	title = {{CEM500K, a large-scale heterogeneous unlabeled cellular electron microscopy image dataset for deep learning}},
+	url = {https://elifesciences.org/articles/65894},
+	volume = {10},
+	year = {2021}
 }
 ```
