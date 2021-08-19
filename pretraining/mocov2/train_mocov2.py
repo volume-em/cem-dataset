@@ -1,4 +1,5 @@
 """
+
 Copied with modification from https://github.com/facebookresearch/moco/blob/master/main_moco.py
 Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
@@ -37,7 +38,7 @@ import torchvision.transforms as tf
 
 import mocov2.builder as builder
 from mocov2.dataset import EMData, GaussianBlur, GaussNoise
-from resnet import resnet50
+from ..resnet import resnet50
 
 import mlflow
 
@@ -50,7 +51,6 @@ def parse_args():
     parser.add_argument('config', help='Path to .yaml training config file')
 
     return vars(parser.parse_args())
-
 
 def main():
     args = parse_args()

@@ -1,3 +1,4 @@
+import os
 import random
 import torch
 import numpy as np
@@ -14,18 +15,23 @@ class EMData(Dataset):
     
     def __init__(self, fpaths_dask_array, tfs):
         super(EMData, self).__init__()
-        self.fpaths_dask_array = fpaths_dask_array
+        #self.fpaths_dask_array = fpaths_dask_array
+        self.fpaths = np.array(glob(os.path.join(fpaths_dask_array, '*.tiff')))
         self.tfs = tfs
         
-        self.fpaths = da.from_npy_stack(fpaths_dask_array)
-        print(f'Loaded {fpaths_dask_array} with {len(self.fpaths)} tiff images')
+        benchmarks = ['urocell', 'guay', 'cremi', 'perez', 'lucchi', 'kasthuri']
+        for bnk in benchmarks:
+            indices = np.where(np.core.defchararray.find(self.fpaths, bnk) == -1)[0]
+            self.fpaths = self.fpaths[indices]
+        
+        print(f'Found {len(self.fpaths)} tiff images')
         
     def __len__(self):
         return len(self.fpaths)
     
     def __getitem__(self, idx):
         #get the filepath to load
-        f = self.fpaths[idx].compute()
+        f = self.fpaths[idx]#.compute()
         
         #load the image and add an empty channel dim
         image = Image.open(f)
