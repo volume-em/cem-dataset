@@ -27,7 +27,9 @@ import torchvision.transforms as tf
 from torch.cuda.amp import autocast
 from torch.cuda.amp import GradScaler
 
-import resnet50 as resnet_models
+import models as models
+
+from sampler import DistributedWeightedSampler
 from LARC import LARC
 from utils import (
     fix_random_seeds,
@@ -129,10 +131,15 @@ def main_worker(gpu, ngpus_per_node, args):
     # build data
     train_dataset = MultiCropDataset(
         args.data_path,
-        transforms
+        transforms,
+        args.weight_gamma
     )
     
-    sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+    if train_dataset.weights is None:
+        sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+    else:
+        sampler = DistributedWeightedSampler(train_dataset, train_dataset.weights)
+        
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         sampler=sampler,
@@ -143,7 +150,7 @@ def main_worker(gpu, ngpus_per_node, args):
     )
 
     # build model
-    model = resnet_models.__dict__[args.arch](
+    model = models.__dict__[args.arch](
         normalize=True,
         hidden_mlp=args.hidden_mlp,
         output_dim=args.feat_dim,
@@ -230,6 +237,7 @@ def main_worker(gpu, ngpus_per_node, args):
         mlflow.log_param('temperature', args.temperature)
         mlflow.log_param('feature_dim', args.feat_dim)
         mlflow.log_param('queue_length', args.queue_length)
+        mlflow.log_param('weight_gamma', args.weight_gamma)
     else:
         # resume existing run
         mlflow.start_run(run_id=run_id)
@@ -258,7 +266,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # train the network
         scores, queue = train(train_loader, model, optimizer, scaler, epoch, lr_schedule, queue, args)
-        training_stats.update(scores)
 
         # save checkpoints
         if args.rank == 0:
