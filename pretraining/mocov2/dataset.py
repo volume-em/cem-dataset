@@ -7,27 +7,70 @@ from glob import glob
 from torch.utils.data import Dataset
 from PIL import Image
 from PIL import ImageFilter
-
-class EMData(Dataset):
-    """
-    Dataset class for loading and augmenting unsupervised data.
-    """
     
-    def __init__(self, fpaths_dask_array, tfs):
+class EMData(Dataset):
+    def __init__(
+        self,
+        data_dir,
+        transforms,
+        weight_gamma=None
+    ):
         super(EMData, self).__init__()
-        #self.fpaths_dask_array = fpaths_dask_array
-        self.fpaths = np.array(glob(os.path.join(fpaths_dask_array, '*.tiff')))
-        self.tfs = tfs
+        self.data_dir = data_dir
         
-        benchmarks = ['urocell', 'guay', 'cremi', 'perez', 'lucchi', 'kasthuri']
-        for bnk in benchmarks:
-            indices = np.where(np.core.defchararray.find(self.fpaths, bnk) == -1)[0]
-            self.fpaths = self.fpaths[indices]
+        self.subdirs = []
+        for sd in os.listdir(data_dir):
+            if os.path.isdir(os.path.join(data_dir, sd)):
+                self.subdirs.append(sd)
         
-        print(f'Found {len(self.fpaths)} tiff images')
+        # images and masks as dicts ordered by subdirectory
+        self.paths_dict = {}
+        for sd in self.subdirs:
+            sd_fps = glob(os.path.join(data_dir, f'{sd}/*.tiff'))
+            if len(sd_fps) > 0:
+                self.paths_dict[sd] = sd_fps
+        
+        # calculate weights per example, if weight gamma is not None
+        self.weight_gamma = weight_gamma
+        if weight_gamma is not None:
+            self.weights = self._example_weights(self.paths_dict, gamma=weight_gamma)
+        else:
+            self.weights = None
+        
+        # unpack dicts to lists of images
+        self.paths = []
+        for paths in self.paths_dict.values():
+            self.paths.extend(paths)
+            
+        print(f'Found {len(self.subdirs)} subdirectories with {len(self.paths)} images.')
+        
+        self.tfs = transforms
         
     def __len__(self):
-        return len(self.fpaths)
+        return len(self.paths)
+    
+    @staticmethod
+    def _example_weights(paths_dict, gamma=0.3):
+        # counts by source subdirectory
+        counts = np.array(
+            [len(paths) for paths in paths_dict.values()]
+        )
+        
+        # invert and gamma the distribution
+        weights = 1 / counts
+        weights = weights ** gamma
+        
+        # for interpretation, normalize weights 
+        # s.t. they sum to 1
+        total_weights = weights.sum()
+        weights /= total_weights
+        
+        # repeat weights per n images
+        example_weights = []
+        for w,c in zip(weights, counts):
+            example_weights.extend([w] * c)
+            
+        return torch.tensor(example_weights)
     
     def __getitem__(self, idx):
         #get the filepath to load
@@ -42,6 +85,19 @@ class EMData(Dataset):
         
         #return the two images as 1 tensor concatenated on
         #the channel dimension, we'll split it later
+        return torch.cat([image1, image2], dim=0)
+
+    def __getitem__(self, index):
+        # get the filepath to load
+        f = self.paths[index]
+        
+        # process multiple transformed crops of the image
+        image = Image.open(f)
+        
+        # transform the images
+        image1 = self.tfs(image)
+        image2 = self.tfs(image)
+
         return torch.cat([image1, image2], dim=0)
 
 class GaussianBlur:

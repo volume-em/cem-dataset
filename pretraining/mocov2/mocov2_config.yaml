@@ -1,7 +1,8 @@
 #basic definitions
-experiment_name: "Filtered_CellEMNet_MoCoV2_No_Benchmarks"
-data_file: "/data/IASEM/conradrw/data/cem500k/" # a .npz dask array of filepaths
-model_dir: "/data/conradrw/FEM_No_Benchmarks/" # the directory in which to save model states
+experiment_name: "MoCo_CEM"
+data_file: "cem_dataset/"
+model_dir: "models/"
+
 arch: "resnet50"
 workers: 16
 epochs: 200
@@ -15,7 +16,7 @@ schedule:
 momentum: 0.9
 weight_decay: 0.0001
 
-resume: "/data/conradrw/FEM_No_Benchmarks/current.pth.tar"
+resume: ""
 world_size: 1
 rank: 0
 dist_url: "tcp://localhost:10001"
@@ -32,5 +33,5 @@ cos: False
 logging: True
 
 norms:
-    mean: 0.58331613
-    std: 0.09966064
+    mean: 0.57287007
+    std: 0.12740536
