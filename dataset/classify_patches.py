@@ -2,16 +2,12 @@
 Description:
 ------------
 
-Fits a ResNet34 model to images that have manually been labeled as "informative" or "uninformative". It's assumed that 
-images have been manually labeled using the corrector.py utilities running in a Jupyter notebook (see notebooks/labeling.ipynb).
-
-The results of this script are the roc curve plot on a randomly chosen validation set of images, the
-model state dict as a .pth file and the model's predictions on all the remaining unlabeled images.
+Classifies EM images into "informative" or "uninformative".
 
 Example usage:
 --------------
 
-python classify_nn.py {impaths_file} {savedir} --labels {label_file} --weights {weights_file}
+python classify_nn.py {deduped_dir} {savedir} --labels {label_file} --weights {weights_file}
 
 For help with arguments:
 ------------------------
@@ -19,7 +15,7 @@ For help with arguments:
 python classify_nn.py --help
 """
 
-DEFAULT_WEIGHTS = "https://www.dropbox.com/s/2libiwgx0qdgxqv/patch_quality_classifier_nn.pth?raw=1"
+DEFAULT_WEIGHTS = "https://zenodo.org/record/6458015/files/patch_quality_classifier_nn.pth?download=1"
 
 import os, sys, cv2, argparse
 import pickle
@@ -42,16 +38,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Classifies a set of images by fitting a random forest to an array of descriptive features'
     )
-    parser.add_argument('dedupe_dir', type=str)
+    parser.add_argument('dedupe_dir', type=str, help='Directory containing ')
     parser.add_argument('savedir', type=str)
     parser.add_argument('--weights', type=str, metavar='weights',
                         help='Optional, path to nn weights file. The default is to download weights used in the paper.')
+    
     args = parser.parse_args()
     
     # parse the arguments
     dedupe_dir = args.dedupe_dir
     savedir = args.savedir
     weights = args.weights
+    
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
     # make sure the savedir exists
     if not os.path.isdir(savedir):
@@ -85,7 +84,7 @@ if __name__ == "__main__":
         
     # load in the weights (strictly)
     msg = model.load_state_dict(state_dict)
-    model = model.cuda()
+    model = model.to(device)
     cudnn.benchmark = True
 
     # make a basic dataset class for loading and 
@@ -111,35 +110,35 @@ if __name__ == "__main__":
                 
             return {'fname': fname, 'image': image}
         
-    
-    for fp in fpaths:
-        print(f'Filtering on {fp}')
+    for fp in tqdm(fpaths):
         dataset_name = os.path.basename(fp)
         if '-ROI-' in dataset_name:
             dataset_name = dataset_name.split('-ROI-')[0]
         else:
-            dataset_name = dataset_name[:-4] # remove .pkl
-            
+            dataset_name = dataset_name[:-len('.pkl')]
+        
         dataset_savedir = os.path.join(savedir, dataset_name)
         if not os.path.exists(dataset_savedir):
             os.mkdir(dataset_savedir)
-            
+        else:
+            continue
+
         # load the patches_dict
         with open(fp, mode='rb') as handle:
             patches_dict = pickle.load(handle)
             
         # create datasets for the train, validation, and test sets
         tst_data = SimpleDataset(patches_dict, eval_tfs)
-        test = DataLoader(tst_data, batch_size=128, shuffle=False, pin_memory=True, num_workers=4)
+        test = DataLoader(tst_data, batch_size=128, shuffle=False, 
+                          pin_memory=True, num_workers=4)
 
         # lastly run inference on the entire set of unlabeled images
-        print(f'Running inference on test set...')
         tst_fnames = []
         tst_predictions = []
         for data in test:
             with torch.no_grad():
                 # load data onto gpu then forward pass
-                images = data['image'].cuda(non_blocking=True)
+                images = data['image'].to(device, non_blocking=True)
                 output = model.eval()(images)
                 predictions = nn.Sigmoid()(output)
                 
@@ -153,4 +152,4 @@ if __name__ == "__main__":
         
         for ix, (fn, img) in enumerate(zip(patches_dict['names'], patches_dict['patches'])):
             if tst_predictions[ix] == 1:
-                io.imsave(os.path.join(dataset_savedir, fn + '.tiff'), img)
+                io.imsave(os.path.join(dataset_savedir, fn + '.tiff'), img, check_contrast=False)
