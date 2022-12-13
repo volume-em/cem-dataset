@@ -31,7 +31,7 @@ Using CEM500K for unsupervised pre-training, we demonstrated a significant impro
 First clone this repository:
 
 ```
-git clone https://github.com/volume-em/cellemnet
+git clone https://github.com/volume-em/cem-dataset.git
 ```
 
 If using conda, install dependencies in a new environment:
@@ -52,15 +52,20 @@ Otherwise, required dependencies can be installed with another package manager (
 - scikit-learn
 - imagehash
 
-## Download CEM500K
+## Download the Dataset
 
-The CEM500K dataset, metadata and pretrained_weights are available through [EMPIAR ID 10592](https://www.ebi.ac.uk/pdbe/emdb/empiar/entry/10592/).
+The latest iteration of the CEM dataset is CEM1.5M. Images and metadata are available for download through [EMPIAR ID 11035](https://www.ebi.ac.uk/empiar/EMPIAR-11035/).
 
-## Use the pre-trained weights
+## Pre-trained weights
 
 Currently, pre-trained weights are only available for PyTorch. For an example of how to use them see ```evaluation/benchmark_configs``` and ```notebooks/pretrained_weights.ipynb```.
 
-We're working to convert the weights for use with TensorFlow/Keras. If you have any experience with this kind of conversion and would like to help with testing, please open an issue.
+| Model architecture  | Pre-training method | Dataset     | Link                                           |
+| ------------------- | ------------------- | ----------- | ---------------------------------------------- |
+| ResNet50            | MoCoV2              | CEM500K     | https://zenodo.org/record/6453140#.Y5inAC2B1Qg |
+| ResNet50            | SWaV                | CEM1.5M     | https://zenodo.org/record/6453160#.Y5iznS2B1Qh |
+
+
 
 ## Data Curation
 
@@ -69,6 +74,7 @@ For image deduplication and filtering routines see the ```dataset``` directory R
 ## Citing this work
 
 Please cite this work.
+
 ```bibtex
 @article {Conrad2021,
 	author = {Conrad, Ryan and Narayan, Kedar},

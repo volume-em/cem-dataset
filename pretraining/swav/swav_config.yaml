@@ -1,0 +1,59 @@
+# training parameters
+experiment_name: "SWaV_CEM"
+data_path: "cem_dataset/"
+model_path: "models/"
+
+print_freq: 500
+
+arch: "resnet50"
+hidden_mlp: 2048
+workers: 8
+checkpoint_freq: 25
+use_fp16: True
+seed: 1447
+resume: null
+
+epochs: 200
+warmup_epochs: 0
+start_warmup: 0
+batch_size: 64
+base_lr: 0.6
+final_lr: 0.0006
+freeze_prototypes_niters: 5005
+wd: 0.000001
+
+# distributed training parameters
+world_size: 1
+rank: 0
+dist_url: "tcp://localhost:10001"
+dist_backend: "nccl"
+multiprocessing_distributed: True
+
+# SWaV parameters
+nmb_crops:
+  - 2
+  - 6
+size_crops:
+  - 224
+  - 96
+min_scale_crops:
+  - 0.14
+  - 0.05
+max_scale_crops:
+  - 1. 
+  - 0.14
+crops_for_assign:
+  - 0
+  - 1
+temperature: 0.1
+epsilon: 0.05
+sinkhorn_iterations: 3
+feat_dim: 128
+nmb_prototypes: 3000
+queue_length: 3840
+epoch_queue_starts: 15
+
+weight_gamma: 0.5
+norms:
+  - 0.575710
+  - 0.127650

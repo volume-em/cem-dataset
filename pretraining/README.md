@@ -1,11 +1,22 @@
 # Pretraining
 
+Before getting started download the latest CEM dataset from EMPIAR. At minimum you'll need access to a system
+with 4 high-end GPUs (P100 or V100). Typically, pre-training takes 4-5 days (depending on the size of the dataset).
+
+## SwAV
+
+To run pretraining with SwAV, first update the ```data_path``` and ```model_path``` parameters in ```swav/swav_config.yaml```, then run:
+
+```bash
+python swav/train_swav.py swav_config.yaml
+```
+
 ## MoCoV2
 
-To run pretraining you'll need to have downloaded the CEM500K data. Update the data_file and model_dir parameters in the mocov2_config.yaml file. Then run:
+To run pretraining with MoCoV2, first update the ```data_path``` and ```model_path``` parameters in ```mocov2/mocov2_config.yaml```, then run:
 
-```
-python train_mocov2.py mocov2_config.yaml
+```bash
+python mocov2/train_mocov2.py mocov2_config.yaml
 ```
 
-The script was tested on machines with either 4 NVidia V100s or P100s. Runtime for a full 200 epochs on CEM500K is 3-4 days (faster if using V100s).
+

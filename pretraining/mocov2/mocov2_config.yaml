@@ -1,10 +1,11 @@
 #basic definitions
-experiment_name: "Filtered_CellEMNet_MoCoV2"
-data_file: # a .npz dask array of filepaths
-model_dir: # the directory in which to save model states
+experiment_name: "MoCo_CEM"
+data_file: "cem_dataset/"
+model_dir: "models/"
+
 arch: "resnet50"
 workers: 16
-epochs: 2
+epochs: 200
 save_freq: 20
 print_freq: 10
 batch_size: 128
@@ -32,5 +33,5 @@ cos: False
 logging: True
 
 norms:
-    mean: 0.58331613
-    std: 0.09966064
+    mean: 0.57287007
+    std: 0.12740536

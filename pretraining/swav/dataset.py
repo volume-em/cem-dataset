@@ -1,21 +1,27 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+#
 import os
+import pickle
 import random
 import torch
 import numpy as np
-import dask.array as da
 from glob import glob
-from torch.utils.data import Dataset
 from PIL import Image
 from PIL import ImageFilter
-    
-class EMData(Dataset):
+from torch.utils.data import Dataset
+
+class MultiCropDataset(Dataset):
     def __init__(
         self,
         data_dir,
         transforms,
         weight_gamma=None
     ):
-        super(EMData, self).__init__()
+        super(MultiCropDataset, self).__init__()
         self.data_dir = data_dir
         
         self.subdirs = []
@@ -71,21 +77,6 @@ class EMData(Dataset):
             example_weights.extend([w] * c)
             
         return torch.tensor(example_weights)
-    
-    def __getitem__(self, idx):
-        #get the filepath to load
-        f = self.fpaths[idx]#.compute()
-        
-        #load the image and add an empty channel dim
-        image = Image.open(f)
-            
-        #transform the images
-        image1 = self.tfs(image)
-        image2 = self.tfs(image)
-        
-        #return the two images as 1 tensor concatenated on
-        #the channel dimension, we'll split it later
-        return torch.cat([image1, image2], dim=0)
 
     def __getitem__(self, index):
         # get the filepath to load
@@ -93,23 +84,34 @@ class EMData(Dataset):
         
         # process multiple transformed crops of the image
         image = Image.open(f)
-        
-        # transform the images
-        image1 = self.tfs(image)
-        image2 = self.tfs(image)
+        multi_crops = list(map(
+            lambda tfs: tfs(image), self.tfs
+        ))
 
-        return torch.cat([image1, image2], dim=0)
+        return multi_crops
 
-class GaussianBlur:
-    """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
+class RandomGaussianBlur:
+    """
+    Apply Gaussian Blur to the PIL image. Take the radius and probability of
+    application as the parameter.
+    This transform was used in SimCLR - https://arxiv.org/abs/2002.05709
+    """
 
-    def __init__(self, sigma=[.1, 2.]):
-        self.sigma = sigma
+    def __init__(self, p=0.5, radius_min=0.1, radius_max=2.):
+        self.prob = p
+        self.radius_min = radius_min
+        self.radius_max = radius_max
 
-    def __call__(self, x):
-        sigma = random.uniform(self.sigma[0], self.sigma[1])
-        x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
-        return x
+    def __call__(self, img):
+        do_it = np.random.rand() <= self.prob
+        if not do_it:
+            return img
+
+        return img.filter(
+            ImageFilter.GaussianBlur(
+                radius=random.uniform(self.radius_min, self.radius_max)
+            )
+        )
     
 class GaussNoise:
     """Gaussian Noise to be applied to images that have been scaled to fit in the range 0-1"""

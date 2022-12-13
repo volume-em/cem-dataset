@@ -4,6 +4,7 @@ channels:
   - conda-forge
   - simpleitk
 dependencies:
+  - python=3.9
   - pip
   - pytorch
   - torchvision
@@ -12,6 +13,7 @@ dependencies:
   - simpleitk
   - scikit-learn
   - pip:
+    - albumentations
     - imagehash
     - albumentations
     - segmentation-models-pytorch

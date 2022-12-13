@@ -29,7 +29,7 @@ from glob import glob
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('mrcdir', type=str, help='Directory containing mrc image volumes')
+    parser.add_argument('mrcdir', type=str, help='Directory containing mrc image volumes.')
     args = parser.parse_args()
     
     #read in the argument

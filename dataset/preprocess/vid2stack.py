@@ -28,35 +28,37 @@ if __name__ == '__main__':
     parser.add_argument('viddir', type=str, help='Directory containing video files: avi or mp4')
     args = parser.parse_args()
 
-    #read in the argument
     viddir = args.viddir
     
-    #get a list of all mp4 and avi filepaths
+    # only avi and mp4 support
     vidfiles = glob(os.path.join(viddir, '*.mp4'))
     vidfiles = vidfiles + glob(os.path.join(viddir, '*.avi'))
     
     print(f'Found {len(vidfiles)} video files.')
     
     for vf in vidfiles:
-        #load the video into cv2
         cap = cv2.VideoCapture(vf)
 
-        #load the first frame
+        # load the first frame
         success, frame = cap.read()
-
-        #loop over the video frames and store them in a list.
-        #note that grayscale videos have 3 duplicate channels,
-        #we only extract the first of these channels
-        frames = [frame[:, :, 0]]
+        # note that grayscale videos have 3 duplicate channels,
+        frames = [frame[..., 0]]
+        
         while success:
             success, frame = cap.read()
             if frame is not None:
-                frames.append(frame[:, :, 0])
+                frames.append(frame[..., 0])
 
-        #stack the frames with the z-axis in the first
-        #dimension
         video = np.stack(frames, axis=0)
-
-        #save as nrrd files
-        nrrd_path = '.'.join(vf.split('.')[:-1]) + '.nrrd'
-        sitk.WriteImage(sitk.GetImageFromArray(video), nrrd_path)
+        
+        fdir = os.path.dirname(vf)
+        fname = os.path.basename(vf)
+        fext = fname.split('.')[-1]
+        
+        if 'video' not in fname.lower():
+            suffix = '_video.nrrd'
+        else:
+            suffix = '.nrrd'
+            
+        outpath = os.path.join(fdir, fname.replace(fext, suffix))
+        sitk.WriteImage(sitk.GetImageFromArray(video), outpath)

@@ -1,4 +1,5 @@
 """
+
 Copied with modification from https://github.com/facebookresearch/moco/blob/master/main_moco.py
 Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
@@ -32,12 +33,11 @@ import torch.optim
 import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision.models as models
 import torchvision.transforms as tf
 
 import mocov2.builder as builder
 from mocov2.dataset import EMData, GaussianBlur, GaussNoise
-from resnet import resnet50
+import resnet as models
 
 import mlflow
 
@@ -50,7 +50,6 @@ def parse_args():
     parser.add_argument('config', help='Path to .yaml training config file')
 
     return vars(parser.parse_args())
-
 
 def main():
     args = parse_args()
@@ -105,9 +104,8 @@ def main_worker(gpu, ngpus_per_node, config):
 
     print("=> creating model '{}'".format(config['arch']))
     
-    #hardcoding the resnet50 for the time being
     model = builder.MoCo(
-        resnet50,
+        models.__dict[config['arch']],
         config['moco_dim'], config['moco_k'], config['moco_m'], config['moco_t'], config['mlp']
     )
 
@@ -191,7 +189,7 @@ def main_worker(gpu, ngpus_per_node, config):
         normalize
     ])
 
-    train_dataset = EMData(config['data_file'], augmentation)
+    train_dataset = EMData(config['data_path'], augmentation)
 
     if config['distributed']:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -214,7 +212,7 @@ def main_worker(gpu, ngpus_per_node, config):
         #we don't want to add everything in the config
         #to mlflow parameters, we'll just add the most
         #likely to change parameters
-        mlflow.log_param('data_file', config['data_file'])
+        mlflow.log_param('data_path', config['data_path'])
         mlflow.log_param('architecture', config['arch'])
         mlflow.log_param('epochs', config['epochs'])
         mlflow.log_param('batch_size', config['batch_size'])
