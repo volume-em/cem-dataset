@@ -13,14 +13,27 @@ the the volumes are actually ROIs from the same dataset. In these cases, it's es
 '-ROI-' identifier exists in each subvolume name.
 
 Volumes must be in a format readable by SimpleITK (primarily .mrc, .nrrd, .tif, etc.). THIS
-SCRIPT DOES NOT SUPPORT (OME)ZARRs. As a rule, such datasets are usually created because of 
-their large size. Sparsely sampled ROIs from such NGFF-style datasets can be saved in one of
-the supported formats using the ../scraping/ngff_download.py script.
+SCRIPT DOES NOT SUPPORT NGFFs. As a rule, such datasets are usually created because of 
+their large size. Sparsely sampled ROIs from such NGFF datasets can be downloaded and saved 
+in one of the supported formats using the ../scraping/ngff_download.py script.
 
 Example usage:
 --------------
 
-python reconstruct3d.py {impaths_file} {volume_dir} {savedir} -nz 224 -p 4 --cross-plane
+python reconstruct3d.py {filtered_dir} \
+        -vd {volume_dir1} {volume_dir2} {volume_dir3} \
+        -sd {savedir} -nz 224 -p 4 --limit 100
+        
+Reconstruct a maximum of 100 subvolumes with 224 z-slices from each
+dataset represented in {filtered_dir}. Save them in {savedir}, which
+will contain a separate subdirectory corresponding to each dataset.
+
+Note1: For generating flipbooks, -nz should always be odd. While even
+numbers strictly can be used, they're likely to cause confusion at
+annotation time because there isn't a "real" middle slice.
+
+Note2: Z-slices will always be the first dimension in the subvolume 
+(this is essential for generating flipbooks).
 
 For help with arguments:
 ------------------------
@@ -99,9 +112,6 @@ if __name__ == "__main__":
         else:
             dirname = volname
             
-        # lookup the img_source
-        #assert(dirname in img_fpaths_dict), \
-        #f"Directory {dirname} not found in image paths!"
         if dirname not in img_fpaths_dict:
             return [], dirname
         
@@ -114,6 +124,12 @@ if __name__ == "__main__":
         return vol_img_fpaths, dirname
     
     def extract_subvolume(volume, img_fpath):
+        """
+        Extracts the correct subvolume from the
+        full volumetric dataset based on the name
+        of a given image which must include the -LOC-
+        identifier.
+        """
         # extract location of image from filename
         img_fpath = os.path.basename(img_fpath)
         volname, loc = img_fpath.split('-LOC-')
@@ -135,29 +151,28 @@ if __name__ == "__main__":
         lowz = index - span
         highz = index + span + 1
         
-        # pass images that don't have enough
-        # context to be annotated as a flipbook
+        # pass images that don't have enough context
         if lowz < 0 or highz >= volume.shape[axis]:
             return None, None
         else:
             axis_span = slice(lowz, highz)
             
             if axis == 0:
-                flipbook = volume[axis_span, yslice, xslice]
+                subvol = volume[axis_span, yslice, xslice]
             elif axis == 1:
-                flipbook = volume[yslice, axis_span, xslice]
-                flipbook = flipbook.transpose(1, 0, 2)
+                subvol = volume[yslice, axis_span, xslice]
+                subvol = subvol.transpose(1, 0, 2)
             elif axis == 2:
-                flipbook = volume[yslice, xslice, axis_span]
-                flipbook = flipbook.transpose(2, 0, 1)
+                subvol = volume[yslice, xslice, axis_span]
+                subvol = subvol.transpose(2, 0, 1)
             else:
                 raise Exception(f'Axis cannot be {axis}, must be in [0, 1, 2]')
                 
-            flipbook_fname = f'{volname}-LOC-{axis}_{lowz}-{highz}_{yrange}_{xrange}'
+            subvol_fname = f'{volname}-LOC-{axis}_{lowz}-{highz}_{yrange}_{xrange}'
                 
-        return flipbook, flipbook_fname
+        return subvol, subvol_fname
     
-    def create_flipbooks(vp):
+    def create_subvols(vp):
         children, dirname = find_children(vp)
         
         vol_savedir = os.path.join(savedir, dirname)
@@ -174,23 +189,19 @@ if __name__ == "__main__":
                 volume = volume[..., 0]
             
             if np.any(np.array(volume.shape) < numberz):
-                raise Exception(f'Flipbooks of size {numberz} cannot be created from {vp} with size {volume.shape}')
+                raise Exception(f'Subvolume of size {numberz} cannot be created from {vp} with size {volume.shape}')
                 
-            # directory in which to save flipbooks 
+            # directory in which to save subvols 
             # from this volume dataset
             if not os.path.isdir(vol_savedir):
                 os.makedirs(vol_savedir, exist_ok=True)
                 
-            # extract and save flipbooks
-            count = 0
+            # extract and save subvols
             for child in children:
-                if count >= 50:
-                    break
-                flipbook, flipbook_fname = extract_subvolume(volume, child)
-                if flipbook_fname is not None:
-                    io.imsave(os.path.join(vol_savedir, flipbook_fname + '.tif'), 
-                              flipbook, check_contrast=False)
-                    count += 1
+                subvol, subvol_fname = extract_subvolume(volume, child)
+                if subvol_fname is not None:
+                    io.imsave(os.path.join(vol_savedir, subvol_fname + '.tif'), 
+                              subvol, check_contrast=False)
     
     with Pool(processes) as pool:
-        output = pool.map(create_flipbooks, volume_fpaths)
+        output = pool.map(create_subvols, volume_fpaths)
