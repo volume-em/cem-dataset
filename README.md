@@ -42,7 +42,7 @@ Currently, pre-trained weights are only available for PyTorch. For an example of
 | Model architecture  | Pre-training method | Dataset     | Link                                           |
 | ------------------- | ------------------- | ----------- | ---------------------------------------------- |
 | ResNet50            | MoCoV2              | CEM500K     | https://zenodo.org/record/6453140#.Y5inAC2B1Qg |
-| ResNet50            | SWaV                | CEM1.5M     | https://zenodo.org/record/6453140#.Y5inAC2B1Qg |
+| ResNet50            | SWaV                | CEM1.5M     | https://zenodo.org/record/6453160#.Y5iznS2B1Qh |
 
 
 
