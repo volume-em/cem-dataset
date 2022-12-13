@@ -16,7 +16,7 @@ python swav/train_swav.py swav_config.yaml
 To run pretraining with MoCoV2, first update the ```data_path``` and ```model_path``` parameters in ```mocov2/mocov2_config.yaml```, then run:
 
 ```bash
-python swav/train_swav.py swav_config.yaml
+python mocov2/train_mocov2.py mocov2_config.yaml
 ```
 
 
