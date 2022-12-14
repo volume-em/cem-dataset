@@ -86,8 +86,8 @@ For example, to create short flipbooks of 5 consecutive images from a directory 
 
 ```bash
 python reconstruct3d.py {filtered_patch_dir} \
-        -vd {volume_dir1} {volume_dir2} {volume_dir3} \
-        -sd {savedir} -nz  -p 4
+        -vd {dir_of_3d_datasets1} {dir_of_3d_datasets2} {dir_of_3d_datasets3} \
+        -sd {savedir} -nz 5 -p 4
 ```
 
 See the script header for more details.
