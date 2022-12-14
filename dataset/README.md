@@ -53,7 +53,7 @@ different from xy resolution, then cross-sections will only be cut from the xy p
 the script (see usage example below). 
 
 ```bash
-python patchify3d.py {dir_of_3d_datasets} {patch_dir} -cs 224 --axes 0 1 2 --processes 4
+python patchify3d.py {dir_of_3d_datasets} {dedupe_dir} -cs 224 --axes 0 1 2 --processes 4
 ```
 
 The ```patchify3d.py``` script will save a ```.pkl``` file with the name of each volume file. Pickle files contain a 
@@ -69,7 +69,7 @@ trained, if needed, using the ```train_patch_classifier.py``` script.
 Filtering will be fastest with a GPU installed, but it's not required.
 
 ```bash
-python classify_patches.py {patch_dir} {save_dir}
+python classify_patches.py {dedupe_dir} {filtered_patch_dir}
 ```
 
 After running filtering, the ```save_dir``` with have one subdirectory for each of the ```.pkl``` files that were 
