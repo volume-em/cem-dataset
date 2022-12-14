@@ -24,7 +24,7 @@ python preprocess/cleanup2d.py {dir_of_2d_image_groups} --processes 4
 Second, crop each image into fixed size patches (typically 224x224):
 
 ```bash
-python patchify2d.py {dir_of_2d_image_groups} {patch_dir} -cs 224 --processes 4
+python patchify2d.py {dir_of_2d_image_groups} {dedupe_dir} -cs 224 --processes 4
 ```
 
 The ```patchify2d.py``` script will save a ```.pkl``` file with the name of each 2D image subdirectory. Pickle files contain a dictionary of patches from all images in the subdirectory along with corresponding filenames. These files are ready for filtering (see below).
