@@ -240,7 +240,7 @@ def crop_cloud_volume(
         y1, y2 = bbox_high[1], bbox_high[4]
         z1, z2 = bbox_high[2], bbox_high[5]
 
-        cube_fname = f'{volume_name}-ROI-x{x1}-{x2}_y{y1}-{y2}_z{z1}-{z2}.nrrd'
+        cube_fname = f'{volume_name}_s{mip_high}-ROI-x{x1}-{x2}_y{y1}-{y2}_z{z1}-{z2}.nrrd'
         cube_fpath = os.path.join(save_path, cube_fname)
         
         # transpose from xyz to zyx
@@ -377,7 +377,7 @@ def crop_ome_zarr(
         x1, x2 = bbox_high[0], bbox_high[3]
         y1, y2 = bbox_high[1], bbox_high[4]
         z1, z2 = bbox_high[2], bbox_high[5]
-        cube_fname = f'{volume_name}-ROI-x{x1}-{x2}_y{y1}-{y2}_z{z1}-{z2}.nrrd'
+        cube_fname = f'{volume_name}_s{high_mip}-ROI-x{x1}-{x2}_y{y1}-{y2}_z{z1}-{z2}.nrrd'
         cube_fpath = os.path.join(save_path, cube_fname)
         
         cube = sitk.GetImageFromArray(cube)
@@ -516,7 +516,7 @@ def crop_xarray(
         x1, x2 = bbox_high[0], bbox_high[3]
         y1, y2 = bbox_high[1], bbox_high[4]
         z1, z2 = bbox_high[2], bbox_high[5]
-        cube_fname = f'{volume_name}-ROI-x{x1}-{x2}_y{y1}-{y2}_z{z1}-{z2}.nrrd'
+        cube_fname = f'{volume_name}_s{high_mip}-ROI-x{x1}-{x2}_y{y1}-{y2}_z{z1}-{z2}.nrrd'
         cube_fpath = os.path.join(save_path, cube_fname)
         
         cube = sitk.GetImageFromArray(cube)
@@ -563,7 +563,7 @@ if __name__ == '__main__':
 
         # compute the number of cubes from the crop_size
         bytes_per_cube = crop_size ** 3
-        n_cubes = max(1, (max_gbs * 1024 ** 3) // bytes_per_cube)
+        n_cubes = int(max(1, (max_gbs * 1024 ** 3) // bytes_per_cube))
         
         print(f'Downloading from {url}')
         if crop and api in ['CloudVolume']:
@@ -615,7 +615,7 @@ if __name__ == '__main__':
             
             # transpose from xyz to zyx
             volume = volume.transpose(2, 1, 0)
-            vol_fpath = os.path.join(save_path, f'{volname}.nrrd')
+            vol_fpath = os.path.join(save_path, f'{volname}_s{mip}.nrrd')
 
             volume = sitk.GetImageFromArray(volume)
             volume.SetSpacing(resolution)
@@ -628,18 +628,21 @@ if __name__ == '__main__':
                 
             # download and process the volume
             volume = load_volume(volume, invert)
-            vol_fpath = os.path.join(save_path, f'{volname}.nrrd')
+            vol_fpath = os.path.join(save_path, f'{volname}_{mip_str}.nrrd')
 
             volume = sitk.GetImageFromArray(volume)
             volume.SetSpacing(resolution)
             sitk.WriteImage(volume, vol_fpath)
         elif not crop and api in ['ome_zarr']:
             mip_str = f'{mip}'
-            volume = fibsem_io.read(url)[mip_str]
+            data = fibsem_io.read(url)
+            res_metadata = data.attrs['multiscales'][0]['datasets'][int(mip_str)]['coordinateTransformations']
+            resolution = res_metadata[0]['scale']
+            volume = data[mip_str]
                 
             # download and process the volume
             volume = load_volume(volume, invert)
-            vol_fpath = os.path.join(save_path, f'{volname}.nrrd')
+            vol_fpath = os.path.join(save_path, f'{volname}_s{mip_str}.nrrd')
 
             volume = sitk.GetImageFromArray(volume)
             volume.SetSpacing(resolution)
