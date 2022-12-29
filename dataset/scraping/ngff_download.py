@@ -1,3 +1,66 @@
+"""
+This script downloads image data from NGFF-style datasets stored either in s3 or locally.
+Supported formats are N5, OME-ZARR, Neuroglancer precomputed.
+
+The general download process is:
+
+1) Open remote or local NGFF dataset with either fibsem_tools or CloudVolume.
+2) Download the lowest resolution image data as an overview (reference) image.
+3) Find up to X GBs of small ROIs in the overview image that are not mostly empty padding.
+4) Crop and download ROIs from the dataset and save them as .nrrd images with correct voxel/pixel size.
+
+Download and preprocessing instructions for a series of NGFF datasets are stored in a csv file.
+That csv is the main argument to this script. ngff_datasets.csv in this repo provides a template.
+The columns and formats are:
+
+url: An optional url to the dataset description page.
+
+source: Name of the database/source of an NGFF. Only required if the 
+source is "openorganelle", otherwise this field is just a helpful descriptor.
+
+api: The API to use for reading the dataset. Current options are "xarray", "CloudVolume",
+and "ome_zarr". If uncertain, it's recommended to test all 3 manually.
+
+download_url: Typically an s3 url for remote datasets and a filepath for locally stored datasets.
+
+volume_name: The prefix name to give to all ROIs derived from that particular dataset. For safety
+they should all be unique.
+
+mip: The scale of data to download. 0 means full resoltion, 1 means half resolution, etc.
+
+voxel_x: Voxel size in the x dimension. Only required for datasets that use the "xarray"
+API. Voxel sizes can be read from file headers using the other APIs.
+
+voxel_y: Voxel size in the y dimension. Only required for datasets that use the "xarray"
+API. Voxel sizes can be read from file headers using the other APIs.
+
+voxel_z: Voxel size in the z dimension. Only required for datasets that use the "xarray"
+API. Voxel sizes can be read from file headers using the other APIs.
+
+crop: Whether to crop the dataset into small ROIs or download it in toto. Should generally
+be True for datasets larger than 5 GB.
+
+crop_size: Cubic crop dimension. Usually 256.
+
+invert: Whether to invert the pixel intensity of the downloaded ROI.
+
+padding_value: The padding value that was used for the volume before any preprocessing.
+0 for black padding and 255 for white padding.
+
+Arguments:
+----------
+csv: The download csv file matching the format described above.
+
+save_path: Directory in which to save the cropped ROIs.
+
+--gb: Max amount of ROI data to crop from any dataset in gigabytes. Default 5.
+
+Example Usage:
+--------------
+
+python scraping/ngff_download.py scraping/ngff_datasets.csv ./ngff_rois/ --gb 5
+
+"""
 import os, sys, math
 import argparse
 import numpy as np
