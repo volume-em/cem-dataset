@@ -15,4 +15,5 @@ dependencies:
   - pip:
     - albumentations
     - imagehash
+    - albumentations
     - segmentation-models-pytorch

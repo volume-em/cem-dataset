@@ -17,6 +17,12 @@ SCRIPT DOES NOT SUPPORT NGFFs. As a rule, such datasets are usually created beca
 their large size. Sparsely sampled ROIs from such NGFF datasets can be downloaded and saved 
 in one of the supported formats using the ../scraping/ngff_download.py script.
 
+NOTE: This script will try to center a given 2D image in a reconstructed 3D image
+without regard to any of the 2D images being reconstructed. It is therefore possible
+that the reconstructed volumes/flipbooks could have significant overlap with each other.
+
+TODO: Prevent significantly overlapping reconstructions.
+
 Example usage:
 --------------
 

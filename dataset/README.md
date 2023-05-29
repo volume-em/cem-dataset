@@ -24,7 +24,7 @@ python preprocess/cleanup2d.py {dir_of_2d_image_groups} --processes 4
 Second, crop each image into fixed size patches (typically 224x224):
 
 ```bash
-python patchify2d.py {dir_of_2d_image_groups} {patch_dir} -cs 224 --processes 4
+python patchify2d.py {dir_of_2d_image_groups} {dedupe_dir} -cs 224 --processes 4
 ```
 
 The ```patchify2d.py``` script will save a ```.pkl``` file with the name of each 2D image subdirectory. Pickle files contain a dictionary of patches from all images in the subdirectory along with corresponding filenames. These files are ready for filtering (see below).
@@ -53,7 +53,7 @@ different from xy resolution, then cross-sections will only be cut from the xy p
 the script (see usage example below). 
 
 ```bash
-python patchify3d.py {dir_of_3d_datasets} {patch_dir} -cs 224 --axes 0 1 2 --processes 4
+python patchify3d.py {dir_of_3d_datasets} {dedupe_dir} -cs 224 --axes 0 1 2 --processes 4
 ```
 
 The ```patchify3d.py``` script will save a ```.pkl``` file with the name of each volume file. Pickle files contain a 
@@ -69,7 +69,7 @@ trained, if needed, using the ```train_patch_classifier.py``` script.
 Filtering will be fastest with a GPU installed, but it's not required.
 
 ```bash
-python classify_patches.py {patch_dir} {save_dir}
+python classify_patches.py {dedupe_dir} {filtered_patch_dir}
 ```
 
 After running filtering, the ```save_dir``` with have one subdirectory for each of the ```.pkl``` files that were 
@@ -86,8 +86,8 @@ For example, to create short flipbooks of 5 consecutive images from a directory 
 
 ```bash
 python reconstruct3d.py {filtered_patch_dir} \
-        -vd {volume_dir1} {volume_dir2} {volume_dir3} \
-        -sd {savedir} -nz  -p 4
+        -vd {dir_of_3d_datasets1} {dir_of_3d_datasets2} {dir_of_3d_datasets3} \
+        -sd {savedir} -nz 5 -p 4
 ```
 
 See the script header for more details.
